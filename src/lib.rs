@@ -1,3 +1,4 @@
+mod flags;
 mod processor;
 
 #[cfg(test)]
