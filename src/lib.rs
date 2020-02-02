@@ -1,10 +1,5 @@
 mod flags;
+mod memory;
 mod processor;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+pub use processor::Processor;
