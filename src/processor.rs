@@ -1,6 +1,6 @@
-use crate::flag;
 use crate::flags::Flags;
 use crate::memory::{Memory, RandomAccessMemory};
+use crate::{alter_default_by, flag};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Core {
@@ -51,11 +51,11 @@ impl Processor {
         self.core.f.set_n(self.core.a);
     }
 
-    // pub(crate) fn ldx(&mut self, addr: u16) {
-    //     self.core.x = self.memory.read(addr);
-    //     self.core.f.set_z(self.core.x);
-    //     self.core.f.set_n(self.core.x);
-    // }
+    pub(crate) fn ldx(&mut self, addr: u16) {
+        self.core.x = self.memory.read(addr);
+        self.core.f.set_z(self.core.x);
+        self.core.f.set_n(self.core.x);
+    }
 }
 
 #[cfg(test)]
@@ -82,36 +82,37 @@ mod tests {
         let mut val = 0x77;
         cpu.memory.write(addr, val);
         cpu.lda(addr);
-        assert_eq!(
-            cpu.core,
-            Core {
-                a: val,
-                ..Core::default()
-            }
-        );
+        assert_eq!(cpu.core, alter_default_by!(Core, a => val));
 
         val = 0xf8;
         cpu.memory.write(addr, val);
         cpu.lda(addr);
-        assert_eq!(
-            cpu.core,
-            Core {
-                a: val,
-                f: flag! {n: true},
-                ..Core::default()
-            }
-        );
+        assert_eq!(cpu.core, alter_default_by!(Core, a => val, f.n => true));
 
         val = 0x00;
         cpu.memory.write(addr, val);
         cpu.lda(addr);
-        assert_eq!(
-            cpu.core,
-            Core {
-                a: val,
-                f: flag! {z: true},
-                ..Core::default()
-            }
-        );
+        assert_eq!(cpu.core, alter_default_by!(Core, a => val, f.z => true));
+    }
+
+    #[test]
+    fn test_ldx() {
+        let mut cpu = Processor::new();
+        let addr: u16 = 0x1000;
+
+        let mut val = 0x77;
+        cpu.memory.write(addr, val);
+        cpu.ldx(addr);
+        assert_eq!(cpu.core, alter_default_by!(Core, x => val));
+
+        val = 0xf8;
+        cpu.memory.write(addr, val);
+        cpu.ldx(addr);
+        assert_eq!(cpu.core, alter_default_by!(Core, x => val, f.n => true));
+
+        val = 0x00;
+        cpu.memory.write(addr, val);
+        cpu.ldx(addr);
+        assert_eq!(cpu.core, alter_default_by!(Core, x => val, f.z => true));
     }
 }
