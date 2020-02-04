@@ -1,6 +1,5 @@
 use crate::flags::Flags;
 use crate::memory::{Memory, RandomAccessMemory};
-use crate::{alter_default_by, flag};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Core {
@@ -62,11 +61,24 @@ impl Processor {
         self.core.f.set_z(self.core.y);
         self.core.f.set_n(self.core.y);
     }
+
+    pub(crate) fn sta(&mut self, addr: u16) {
+        self.memory.write(addr, self.core.a);
+    }
+
+    pub(crate) fn stx(&mut self, addr: u16) {
+        self.memory.write(addr, self.core.x);
+    }
+
+    pub(crate) fn sty(&mut self, addr: u16) {
+        self.memory.write(addr, self.core.y);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::alter_default_by;
 
     #[test]
     fn test_core_new() {
@@ -141,5 +153,41 @@ mod tests {
         cpu.memory.write(addr, val);
         cpu.ldy(addr);
         assert_eq!(cpu.core, alter_default_by!(Core, y => val, f.z => true));
+    }
+
+    #[test]
+    fn test_sta() {
+        let mut cpu = Processor::new();
+        let addr: u16 = 0x2000;
+
+        let val = 0x9f;
+        cpu.core.a = val;
+
+        cpu.sta(addr);
+        assert_eq!(val, cpu.memory.contents[addr as usize]);
+    }
+
+    #[test]
+    fn test_stx() {
+        let mut cpu = Processor::new();
+        let addr: u16 = 0x2000;
+
+        let val = 0xfc;
+        cpu.core.x = val;
+
+        cpu.stx(addr);
+        assert_eq!(val, cpu.memory.contents[addr as usize]);
+    }
+
+    #[test]
+    fn test_sty() {
+        let mut cpu = Processor::new();
+        let addr: u16 = 0x2000;
+
+        let val = 0x04;
+        cpu.core.y = val;
+
+        cpu.sty(addr);
+        assert_eq!(val, cpu.memory.contents[addr as usize]);
     }
 }
