@@ -56,6 +56,12 @@ impl Processor {
         self.core.f.set_z(self.core.x);
         self.core.f.set_n(self.core.x);
     }
+
+    pub(crate) fn ldy(&mut self, addr: u16) {
+        self.core.y = self.memory.read(addr);
+        self.core.f.set_z(self.core.y);
+        self.core.f.set_n(self.core.y);
+    }
 }
 
 #[cfg(test)]
@@ -114,5 +120,26 @@ mod tests {
         cpu.memory.write(addr, val);
         cpu.ldx(addr);
         assert_eq!(cpu.core, alter_default_by!(Core, x => val, f.z => true));
+    }
+
+    #[test]
+    fn test_ldy() {
+        let mut cpu = Processor::new();
+        let addr: u16 = 0x1000;
+
+        let mut val = 0x77;
+        cpu.memory.write(addr, val);
+        cpu.ldy(addr);
+        assert_eq!(cpu.core, alter_default_by!(Core, y => val));
+
+        val = 0xf8;
+        cpu.memory.write(addr, val);
+        cpu.ldy(addr);
+        assert_eq!(cpu.core, alter_default_by!(Core, y => val, f.n => true));
+
+        val = 0x00;
+        cpu.memory.write(addr, val);
+        cpu.ldy(addr);
+        assert_eq!(cpu.core, alter_default_by!(Core, y => val, f.z => true));
     }
 }
