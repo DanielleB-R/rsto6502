@@ -18,9 +18,31 @@ impl Flags {
     }
 }
 
+#[macro_export]
+macro_rules! flag {
+    ( $($f:ident: $v:expr),* ) => {
+        Flags {
+            $($f: $v,)*
+            ..Flags::default()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_macro() {
+        assert_eq!(flag! {}, Flags::default());
+        assert_eq!(
+            flag! {c: true},
+            Flags {
+                c: true,
+                ..Flags::default()
+            }
+        );
+    }
 
     #[test]
     fn test_set_z() {

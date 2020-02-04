@@ -1,3 +1,4 @@
+use crate::flag;
 use crate::flags::Flags;
 use crate::memory::{Memory, RandomAccessMemory};
 
@@ -49,6 +50,12 @@ impl Processor {
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
     }
+
+    // pub(crate) fn ldx(&mut self, addr: u16) {
+    //     self.core.x = self.memory.read(addr);
+    //     self.core.f.set_z(self.core.x);
+    //     self.core.f.set_n(self.core.x);
+    // }
 }
 
 #[cfg(test)]
@@ -90,10 +97,7 @@ mod tests {
             cpu.core,
             Core {
                 a: val,
-                f: Flags {
-                    n: true,
-                    ..Flags::default()
-                },
+                f: flag! {n: true},
                 ..Core::default()
             }
         );
@@ -105,10 +109,7 @@ mod tests {
             cpu.core,
             Core {
                 a: val,
-                f: Flags {
-                    z: true,
-                    ..Flags::default()
-                },
+                f: flag! {z: true},
                 ..Core::default()
             }
         );
