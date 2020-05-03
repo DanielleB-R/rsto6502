@@ -16,6 +16,24 @@ impl Flags {
     pub fn set_n(&mut self, n: u8) {
         self.n = n & 0x80 != 0;
     }
+
+    pub fn get_byte(&self) -> u8 {
+        (self.c as u8)
+            | ((self.z as u8) << 1)
+            | ((self.i as u8) << 2)
+            | ((self.d as u8) << 3)
+            | ((self.v as u8) << 6)
+            | ((self.n as u8) << 7)
+    }
+
+    pub fn set_byte(&mut self, byte: u8) {
+        self.c = byte & 0x01 != 0;
+        self.z = byte & 0x02 != 0;
+        self.i = byte & 0x04 != 0;
+        self.d = byte & 0x08 != 0;
+        self.v = byte & 0x40 != 0;
+        self.n = byte & 0x80 != 0;
+    }
 }
 
 #[macro_export]

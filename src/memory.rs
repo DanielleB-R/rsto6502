@@ -3,6 +3,9 @@ pub trait Memory {
     fn read_word(&self, addr: u16) -> u16 {
         u16::from_le_bytes([self.read(addr), self.read(addr + 1)])
     }
+    fn read_signed(&self, addr: u16) -> i8 {
+        i8::from_le_bytes([self.read(addr)])
+    }
     fn write(&mut self, addr: u16, data: u8);
     fn length(&self) -> usize;
 }
