@@ -1,4 +1,5 @@
 use crate::flags::Flags;
+use crate::instructions::Instruction;
 use crate::memory::{Memory, RandomAccessMemory};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -11,12 +12,13 @@ pub struct Core {
     pub pc: u16,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Processor {
     pub core: Core,
     pub memory: RandomAccessMemory,
     // TODO: Is there a better way to do this?
     pub jumped: bool,
+    pub(crate) instructions: Vec<Instruction>,
 }
 
 impl Core {
@@ -40,11 +42,15 @@ impl Default for Core {
 
 impl Processor {
     pub fn new() -> Processor {
-        Processor {
+        let mut processor = Processor {
             core: Core::new(),
             memory: RandomAccessMemory::new(0xffff),
             jumped: false,
-        }
+            instructions: vec![Default::default(); 256],
+        };
+        processor.build_instruction_table();
+
+        processor
     }
 
     fn branch(&mut self, addr: u16) {
@@ -352,6 +358,106 @@ impl Processor {
         self.core.f.set_byte(byte);
     }
 
+    pub(crate) fn rol(&mut self, addr: u16) {
+        let carry = self.core.f.c as u8;
+        let mut operand = self.memory.read(addr);
+
+        self.core.f.c = operand & 0x80 != 0;
+        operand = (operand << 1) | carry;
+
+        self.memory.write(addr, operand);
+        self.core.f.set_z(operand);
+        self.core.f.set_n(operand);
+    }
+
+    pub(crate) fn rola(&mut self, _addr: u16) {
+        let carry = self.core.f.c as u8;
+
+        self.core.f.c = self.core.a & 0x80 != 0;
+        self.core.a = (self.core.a << 1) | carry;
+
+        self.core.f.set_z(self.core.a);
+        self.core.f.set_n(self.core.a);
+    }
+
+    pub(crate) fn ror(&mut self, addr: u16) {
+        let carry = (self.core.f.c as u8) << 7;
+        let mut operand = self.memory.read(addr);
+
+        self.core.f.c = operand & 0x01 != 0;
+        operand = (operand >> 1) | carry;
+
+        self.memory.write(addr, operand);
+        self.core.f.set_z(operand);
+        self.core.f.set_n(operand);
+    }
+
+    pub(crate) fn rora(&mut self, _addr: u16) {
+        let carry = (self.core.f.c as u8) << 7;
+
+        self.core.f.c = self.core.a & 0x01 != 0;
+        self.core.a = (self.core.a >> 1) | carry;
+
+        self.core.f.set_z(self.core.a);
+        self.core.f.set_n(self.core.a);
+    }
+
+    pub(crate) fn rti(&mut self, _addr: u16) {
+        self.plp(0);
+        self.jumped = true;
+        self.rts(0);
+    }
+
+    pub(crate) fn rts(&mut self, _addr: u16) {
+        let lob = self.pull();
+        let hob = self.pull();
+        self.core.pc = ((hob as u16) << 8) | (lob as u16);
+    }
+
+    pub(crate) fn sbc(&mut self, addr: u16) {
+        let old_a = self.core.a;
+        let mut carry = (!self.core.f.c) as u8;
+        let mut operand = self.memory.read(addr);
+
+        if self.core.f.d {
+            let mut lnr = (old_a & 0x0f) - (operand & 0x0f) - carry;
+            if lnr > 0x09 {
+                lnr -= 0x06;
+                carry = 0x01;
+            } else {
+                carry = 0x00;
+            }
+
+            let mut hnr = (old_a >> 4) - (operand >> 4) - carry;
+            if hnr > 0x09 {
+                hnr -= 0x06;
+                self.core.f.c = false;
+            } else {
+                self.core.f.c = true;
+            }
+            self.core.a = (hnr << 4) + (lnr & 0x0f);
+        } else {
+            let diff = (old_a as u16) - (operand as u16) - (carry as u16);
+            self.core.a = (diff & 0x0ff) as u8;
+            self.core.f.c = diff <= 0x0ff;
+            self.core.f.set_z(self.core.a);
+            self.core.f.set_n(self.core.a);
+            self.core.f.v = (old_a ^ operand) & 0x80 != 0 && (old_a ^ self.core.a) & 0x80 != 0;
+        }
+    }
+
+    pub(crate) fn sec(&mut self, _addr: u16) {
+        self.core.f.c = true;
+    }
+
+    pub(crate) fn sed(&mut self, _addr: u16) {
+        self.core.f.d = true;
+    }
+
+    pub(crate) fn sei(&mut self, _addr: u16) {
+        self.core.f.i = true;
+    }
+
     pub(crate) fn sta(&mut self, addr: u16) {
         self.memory.write(addr, self.core.a);
     }
@@ -376,10 +482,20 @@ impl Processor {
         self.core.f.set_n(self.core.y);
     }
 
+    pub(crate) fn tsx(&mut self, _addr: u16) {
+        self.core.x = self.core.sp;
+        self.core.f.set_z(self.core.x);
+        self.core.f.set_n(self.core.x);
+    }
+
     pub(crate) fn txa(&mut self, _addr: u16) {
         self.core.a = self.core.x;
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
+    }
+
+    pub(crate) fn txs(&mut self, _addr: u16) {
+        self.core.sp = self.core.x;
     }
 
     pub(crate) fn tya(&mut self, _addr: u16) {
