@@ -116,7 +116,7 @@ impl Processor {
         self.core.f.set_n(self.core.a);
     }
 
-    pub(crate) fn asla(&mut self, _addr: u16) {
+    pub(crate) fn asla(&mut self) {
         self.core.f.c = self.core.a & 0x80 != 0;
         self.core.a <<= 1;
         self.core.f.set_z(self.core.a);
@@ -177,10 +177,10 @@ impl Processor {
         }
     }
 
-    pub(crate) fn brk(&mut self, _addr: u16) {
+    pub(crate) fn brk(&mut self) {
         let ret = self.core.pc + 2;
         self.push_word(ret);
-        self.php(0);
+        self.php();
         self.core.f.i = true;
         self.jmp(self.memory.read_word(0xfffe));
     }
@@ -197,19 +197,19 @@ impl Processor {
         }
     }
 
-    pub(crate) fn clc(&mut self, _addr: u16) {
+    pub(crate) fn clc(&mut self) {
         self.core.f.c = false;
     }
 
-    pub(crate) fn cld(&mut self, _addr: u16) {
+    pub(crate) fn cld(&mut self) {
         self.core.f.d = false;
     }
 
-    pub(crate) fn cli(&mut self, _addr: u16) {
+    pub(crate) fn cli(&mut self) {
         self.core.f.i = false;
     }
 
-    pub(crate) fn clv(&mut self, _addr: u16) {
+    pub(crate) fn clv(&mut self) {
         self.core.f.v = false;
     }
 
@@ -245,13 +245,13 @@ impl Processor {
         self.core.f.set_n(operand);
     }
 
-    pub(crate) fn dex(&mut self, _addr: u16) {
+    pub(crate) fn dex(&mut self) {
         self.core.x -= 1;
         self.core.f.set_z(self.core.x);
         self.core.f.set_n(self.core.x);
     }
 
-    pub(crate) fn dey(&mut self, _addr: u16) {
+    pub(crate) fn dey(&mut self) {
         self.core.y -= 1;
         self.core.f.set_z(self.core.y);
         self.core.f.set_n(self.core.y);
@@ -271,13 +271,13 @@ impl Processor {
         self.core.f.set_n(operand);
     }
 
-    pub(crate) fn inx(&mut self, _addr: u16) {
+    pub(crate) fn inx(&mut self) {
         self.core.x += 1;
         self.core.f.set_z(self.core.x);
         self.core.f.set_n(self.core.x);
     }
 
-    pub(crate) fn iny(&mut self, _addr: u16) {
+    pub(crate) fn iny(&mut self) {
         self.core.y += 1;
         self.core.f.set_z(self.core.y);
         self.core.f.set_n(self.core.y);
@@ -321,14 +321,14 @@ impl Processor {
         self.core.f.set_n(operand);
     }
 
-    pub(crate) fn lsra(&mut self, addr: u16) {
+    pub(crate) fn lsra(&mut self) {
         self.core.f.c = self.core.a & 0x10 != 0;
         self.core.a >>= 1;
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
     }
 
-    pub(crate) fn nop(&mut self, _addr: u16) {
+    pub(crate) fn nop(&mut self) {
         // do nothing
     }
 
@@ -338,22 +338,22 @@ impl Processor {
         self.core.f.set_n(self.core.a);
     }
 
-    pub(crate) fn pha(&mut self, _addr: u16) {
+    pub(crate) fn pha(&mut self) {
         self.push(self.core.a);
     }
 
-    pub(crate) fn php(&mut self, _addr: u16) {
+    pub(crate) fn php(&mut self) {
         // PHP always sets bits 4 and 5
         self.push(self.core.f.get_byte() | 0x30);
     }
 
-    pub(crate) fn pla(&mut self, _addr: u16) {
+    pub(crate) fn pla(&mut self) {
         self.core.a = self.pull();
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
     }
 
-    pub(crate) fn plp(&mut self, _addr: u16) {
+    pub(crate) fn plp(&mut self) {
         let byte = self.pull();
         self.core.f.set_byte(byte);
     }
@@ -370,7 +370,7 @@ impl Processor {
         self.core.f.set_n(operand);
     }
 
-    pub(crate) fn rola(&mut self, _addr: u16) {
+    pub(crate) fn rola(&mut self) {
         let carry = self.core.f.c as u8;
 
         self.core.f.c = self.core.a & 0x80 != 0;
@@ -392,7 +392,7 @@ impl Processor {
         self.core.f.set_n(operand);
     }
 
-    pub(crate) fn rora(&mut self, _addr: u16) {
+    pub(crate) fn rora(&mut self) {
         let carry = (self.core.f.c as u8) << 7;
 
         self.core.f.c = self.core.a & 0x01 != 0;
@@ -402,13 +402,13 @@ impl Processor {
         self.core.f.set_n(self.core.a);
     }
 
-    pub(crate) fn rti(&mut self, _addr: u16) {
-        self.plp(0);
+    pub(crate) fn rti(&mut self) {
+        self.plp();
         self.jumped = true;
-        self.rts(0);
+        self.rts();
     }
 
-    pub(crate) fn rts(&mut self, _addr: u16) {
+    pub(crate) fn rts(&mut self) {
         let lob = self.pull();
         let hob = self.pull();
         self.core.pc = ((hob as u16) << 8) | (lob as u16);
@@ -417,7 +417,7 @@ impl Processor {
     pub(crate) fn sbc(&mut self, addr: u16) {
         let old_a = self.core.a;
         let mut carry = (!self.core.f.c) as u8;
-        let mut operand = self.memory.read(addr);
+        let operand = self.memory.read(addr);
 
         if self.core.f.d {
             let mut lnr = (old_a & 0x0f) - (operand & 0x0f) - carry;
@@ -446,15 +446,15 @@ impl Processor {
         }
     }
 
-    pub(crate) fn sec(&mut self, _addr: u16) {
+    pub(crate) fn sec(&mut self) {
         self.core.f.c = true;
     }
 
-    pub(crate) fn sed(&mut self, _addr: u16) {
+    pub(crate) fn sed(&mut self) {
         self.core.f.d = true;
     }
 
-    pub(crate) fn sei(&mut self, _addr: u16) {
+    pub(crate) fn sei(&mut self) {
         self.core.f.i = true;
     }
 
@@ -470,35 +470,35 @@ impl Processor {
         self.memory.write(addr, self.core.y);
     }
 
-    pub(crate) fn tax(&mut self, _addr: u16) {
+    pub(crate) fn tax(&mut self) {
         self.core.x = self.core.a;
         self.core.f.set_z(self.core.x);
         self.core.f.set_n(self.core.x);
     }
 
-    pub(crate) fn tay(&mut self, _addr: u16) {
+    pub(crate) fn tay(&mut self) {
         self.core.y = self.core.a;
         self.core.f.set_z(self.core.y);
         self.core.f.set_n(self.core.y);
     }
 
-    pub(crate) fn tsx(&mut self, _addr: u16) {
+    pub(crate) fn tsx(&mut self) {
         self.core.x = self.core.sp;
         self.core.f.set_z(self.core.x);
         self.core.f.set_n(self.core.x);
     }
 
-    pub(crate) fn txa(&mut self, _addr: u16) {
+    pub(crate) fn txa(&mut self) {
         self.core.a = self.core.x;
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
     }
 
-    pub(crate) fn txs(&mut self, _addr: u16) {
+    pub(crate) fn txs(&mut self) {
         self.core.sp = self.core.x;
     }
 
-    pub(crate) fn tya(&mut self, _addr: u16) {
+    pub(crate) fn tya(&mut self) {
         self.core.a = self.core.y;
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
@@ -629,21 +629,21 @@ mod tests {
         cpu.core.a = val;
         let expected = alter_by!(cpu.core, x => val, f.n => true);
 
-        cpu.tax(0);
+        cpu.tax();
         assert_eq!(expected, cpu.core);
 
         let val = 0x00;
         cpu.core.a = val;
         let expected = alter_by!(cpu.core, x => val, f.n => false, f.z => true);
 
-        cpu.tax(0);
+        cpu.tax();
         assert_eq!(expected, cpu.core);
 
         let val = 0x54;
         cpu.core.a = val;
         let expected = alter_by!(cpu.core, x => val, f.z => false);
 
-        cpu.tax(0);
+        cpu.tax();
         assert_eq!(expected, cpu.core);
     }
 
@@ -655,21 +655,21 @@ mod tests {
         cpu.core.a = val;
         let expected = alter_by!(cpu.core, y => val, f.n => true);
 
-        cpu.tay(0);
+        cpu.tay();
         assert_eq!(expected, cpu.core);
 
         let val = 0x00;
         cpu.core.a = val;
         let expected = alter_by!(cpu.core, y => val, f.n => false, f.z => true);
 
-        cpu.tay(0);
+        cpu.tay();
         assert_eq!(expected, cpu.core);
 
         let val = 0x54;
         cpu.core.a = val;
         let expected = alter_by!(cpu.core, y => val, f.z => false);
 
-        cpu.tay(0);
+        cpu.tay();
         assert_eq!(expected, cpu.core);
     }
 
@@ -681,21 +681,21 @@ mod tests {
         cpu.core.x = val;
         let expected = alter_by!(cpu.core, a => val, f.n => true);
 
-        cpu.txa(0);
+        cpu.txa();
         assert_eq!(expected, cpu.core);
 
         let val = 0x00;
         cpu.core.x = val;
         let expected = alter_by!(cpu.core, a => val, f.n => false, f.z => true);
 
-        cpu.txa(0);
+        cpu.txa();
         assert_eq!(expected, cpu.core);
 
         let val = 0x54;
         cpu.core.x = val;
         let expected = alter_by!(cpu.core, a => val, f.z => false);
 
-        cpu.txa(0);
+        cpu.txa();
         assert_eq!(expected, cpu.core);
     }
     #[test]
@@ -706,21 +706,21 @@ mod tests {
         cpu.core.y = val;
         let expected = alter_by!(cpu.core, a => val, f.n => true);
 
-        cpu.tya(0);
+        cpu.tya();
         assert_eq!(expected, cpu.core);
 
         let val = 0x00;
         cpu.core.y = val;
         let expected = alter_by!(cpu.core, a => val, f.n => false, f.z => true);
 
-        cpu.tya(0);
+        cpu.tya();
         assert_eq!(expected, cpu.core);
 
         let val = 0x54;
         cpu.core.y = val;
         let expected = alter_by!(cpu.core, a => val, f.z => false);
 
-        cpu.tya(0);
+        cpu.tya();
         assert_eq!(expected, cpu.core);
     }
 }
