@@ -503,6 +503,18 @@ impl Processor {
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
     }
+
+    pub fn emulate_instruction(&mut self) {
+        let opcode = self.memory.read(self.core.pc);
+
+        let instruction = self.instructions[opcode as usize];
+        instruction.apply(self);
+        if self.jumped {
+            self.jumped = false;
+        } else {
+            self.core.pc += instruction.length();
+        }
+    }
 }
 
 #[cfg(test)]

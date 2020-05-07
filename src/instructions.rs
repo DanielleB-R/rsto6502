@@ -4,7 +4,7 @@ use crate::processor::Processor;
 type NoOperandOperation = fn(&mut Processor);
 type Operation = fn(&mut Processor, u16);
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum Instruction {
     NoOperand(NoOperandOperation),
     Immediate(Operation),
