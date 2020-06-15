@@ -142,7 +142,7 @@ impl Processor {
         self.instructions[0x2e] = Instruction::Absolute(Self::rol);
 
         self.instructions[0x30] = Instruction::Immediate(Self::bmi);
-        self.instructions[0x31] = Instruction::IndexedIndirect(Self::and);
+        self.instructions[0x31] = Instruction::IndirectIndexed(Self::and);
         self.instructions[0x35] = Instruction::ZeroPageX(Self::and);
         self.instructions[0x36] = Instruction::ZeroPageX(Self::rol);
         self.instructions[0x38] = Instruction::NoOperand(Self::sec);

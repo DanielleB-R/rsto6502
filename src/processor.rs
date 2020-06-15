@@ -424,7 +424,9 @@ impl Processor {
         let operand = self.memory.read(addr);
 
         if self.core.f.d {
-            let mut lnr = (old_a & 0x0f) - (operand & 0x0f) - carry;
+            let mut lnr = (old_a & 0x0f)
+                .wrapping_sub(operand & 0x0f)
+                .wrapping_sub(carry);
             if lnr > 0x09 {
                 lnr -= 0x06;
                 carry = 0x01;
@@ -432,7 +434,7 @@ impl Processor {
                 carry = 0x00;
             }
 
-            let mut hnr = (old_a >> 4) - (operand >> 4) - carry;
+            let mut hnr = (old_a >> 4).wrapping_sub(operand >> 4).wrapping_sub(carry);
             if hnr > 0x09 {
                 hnr -= 0x06;
                 self.core.f.c = false;
@@ -441,7 +443,9 @@ impl Processor {
             }
             self.core.a = (hnr << 4) + (lnr & 0x0f);
         } else {
-            let diff = (old_a as u16) - (operand as u16) - (carry as u16);
+            let diff = (old_a as u16)
+                .wrapping_sub(operand as u16)
+                .wrapping_sub(carry as u16);
             self.core.a = (diff & 0x0ff) as u8;
             self.core.f.c = diff <= 0x0ff;
             self.core.f.set_z(self.core.a);
