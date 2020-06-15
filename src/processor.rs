@@ -2,7 +2,7 @@ use crate::flags::Flags;
 use crate::instructions::Instruction;
 use crate::memory::{Memory, RandomAccessMemory};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Core {
     pub a: u8,
     pub x: u8,
@@ -41,10 +41,14 @@ impl Default for Core {
 }
 
 impl Processor {
-    pub fn new() -> Processor {
+    pub fn new() -> Self {
+        Self::with_memory(RandomAccessMemory::new(0xffff))
+    }
+
+    pub fn with_memory(memory: RandomAccessMemory) -> Self {
         let mut processor = Processor {
             core: Core::new(),
-            memory: RandomAccessMemory::new(0xffff),
+            memory,
             jumped: false,
             instructions: vec![Default::default(); 256],
         };
@@ -59,13 +63,13 @@ impl Processor {
     }
 
     fn pull(&mut self) -> u8 {
-        self.core.sp += 1;
+        self.core.sp = self.core.sp.wrapping_add(1);
         self.memory.read(self.stack_addr())
     }
 
     fn push(&mut self, value: u8) {
         self.memory.write(self.stack_addr(), value);
-        self.core.sp -= 1;
+        self.core.sp = self.core.sp.wrapping_sub(1);
     }
 
     fn push_word(&mut self, value: u16) {
@@ -239,20 +243,20 @@ impl Processor {
 
     pub(crate) fn dec(&mut self, addr: u16) {
         let mut operand = self.memory.read(addr);
-        operand -= 1;
+        operand = operand.wrapping_sub(1);
         self.memory.write(addr, operand);
         self.core.f.set_z(operand);
         self.core.f.set_n(operand);
     }
 
     pub(crate) fn dex(&mut self) {
-        self.core.x -= 1;
+        self.core.x = self.core.x.wrapping_sub(1);
         self.core.f.set_z(self.core.x);
         self.core.f.set_n(self.core.x);
     }
 
     pub(crate) fn dey(&mut self) {
-        self.core.y -= 1;
+        self.core.y = self.core.y.wrapping_sub(1);
         self.core.f.set_z(self.core.y);
         self.core.f.set_n(self.core.y);
     }
@@ -265,20 +269,20 @@ impl Processor {
 
     pub(crate) fn inc(&mut self, addr: u16) {
         let mut operand = self.memory.read(addr);
-        operand += 1;
+        operand = operand.wrapping_add(1);
         self.memory.write(addr, operand);
         self.core.f.set_z(operand);
         self.core.f.set_n(operand);
     }
 
     pub(crate) fn inx(&mut self) {
-        self.core.x += 1;
+        self.core.x = self.core.x.wrapping_add(1);
         self.core.f.set_z(self.core.x);
         self.core.f.set_n(self.core.x);
     }
 
     pub(crate) fn iny(&mut self) {
-        self.core.y += 1;
+        self.core.y = self.core.y.wrapping_add(1);
         self.core.f.set_z(self.core.y);
         self.core.f.set_n(self.core.y);
     }
@@ -314,7 +318,7 @@ impl Processor {
 
     pub(crate) fn lsr(&mut self, addr: u16) {
         let mut operand = self.memory.read(addr);
-        self.core.f.c = operand & 0x10 != 0;
+        self.core.f.c = operand & 0x01 != 0;
         operand >>= 1;
         self.memory.write(addr, operand);
         self.core.f.set_z(operand);
@@ -322,7 +326,7 @@ impl Processor {
     }
 
     pub(crate) fn lsra(&mut self) {
-        self.core.f.c = self.core.a & 0x10 != 0;
+        self.core.f.c = self.core.a & 0x01 != 0;
         self.core.a >>= 1;
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
