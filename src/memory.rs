@@ -1,4 +1,4 @@
-pub trait Memory {
+pub trait Memory: Clone {
     fn read(&self, addr: u16) -> u8;
     fn read_word(&self, addr: u16) -> u16 {
         u16::from_le_bytes([self.read(addr), self.read(addr + 1)])
@@ -64,6 +64,7 @@ impl Memory for ReadOnlyMemory {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct MirroredMemory<T: Memory> {
     pub underlying: T,
     pub mask: u16,

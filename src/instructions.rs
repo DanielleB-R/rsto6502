@@ -1,32 +1,34 @@
 use crate::memory::Memory;
 use crate::processor::Processor;
 
-type NoOperandOperation = fn(&mut Processor);
-type Operation = fn(&mut Processor, u16);
+type NoOperandOperation<T> = fn(&mut Processor<T>);
+type Operation<T> = fn(&mut Processor<T>, u16);
 
-#[derive(Clone, Copy)]
-pub enum Instruction {
-    NoOperand(NoOperandOperation),
-    Immediate(Operation),
-    Absolute(Operation),
-    AbsoluteX(Operation),
-    AbsoluteY(Operation),
-    ZeroPage(Operation),
-    ZeroPageX(Operation),
-    ZeroPageY(Operation),
-    Indirect(Operation),
-    IndexedIndirect(Operation),
-    IndirectIndexed(Operation),
+#[derive(Clone)]
+pub enum Instruction<T: Memory> {
+    NoOperand(NoOperandOperation<T>),
+    Immediate(Operation<T>),
+    Absolute(Operation<T>),
+    AbsoluteX(Operation<T>),
+    AbsoluteY(Operation<T>),
+    ZeroPage(Operation<T>),
+    ZeroPageX(Operation<T>),
+    ZeroPageY(Operation<T>),
+    Indirect(Operation<T>),
+    IndexedIndirect(Operation<T>),
+    IndirectIndexed(Operation<T>),
     Invalid,
 }
 
-impl Default for Instruction {
+impl<T: Memory> Copy for Instruction<T> {}
+
+impl<T: Memory> Default for Instruction<T> {
     fn default() -> Self {
         Self::Invalid
     }
 }
 
-impl Instruction {
+impl<T: Memory> Instruction<T> {
     pub fn length(&self) -> u16 {
         match self {
             Self::NoOperand(_) => 1,
@@ -44,7 +46,7 @@ impl Instruction {
         }
     }
 
-    pub fn apply(&self, cpu: &mut Processor) {
+    pub fn apply(&self, cpu: &mut Processor<T>) {
         match self {
             Self::NoOperand(op) => op(cpu),
             Self::Immediate(op) => op(cpu, cpu.immediate_address()),
@@ -62,7 +64,7 @@ impl Instruction {
     }
 }
 
-impl Processor {
+impl<T: Memory> Processor<T> {
     pub(crate) fn immediate_address(&self) -> u16 {
         self.core.pc + 1
     }

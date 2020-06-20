@@ -13,12 +13,12 @@ pub struct Core {
 }
 
 #[derive(Clone)]
-pub struct Processor {
+pub struct Processor<T: Memory> {
     pub core: Core,
-    pub memory: RandomAccessMemory,
+    pub memory: T,
     // TODO: Is there a better way to do this?
     pub jumped: bool,
-    pub(crate) instructions: Vec<Instruction>,
+    pub(crate) instructions: Vec<Instruction<T>>,
 }
 
 impl Core {
@@ -40,12 +40,12 @@ impl Default for Core {
     }
 }
 
-impl Processor {
-    pub fn new() -> Self {
-        Self::with_memory(RandomAccessMemory::new(0xffff))
-    }
+pub fn new_processor() -> Processor<RandomAccessMemory> {
+    Processor::with_memory(RandomAccessMemory::new(0xffff))
+}
 
-    pub fn with_memory(memory: RandomAccessMemory) -> Self {
+impl<T: Memory> Processor<T> {
+    pub fn with_memory(memory: T) -> Self {
         let mut processor = Processor {
             core: Core::new(),
             memory,
@@ -544,7 +544,7 @@ mod tests {
 
     #[test]
     fn test_lda() {
-        let mut cpu = Processor::new();
+        let mut cpu = new_processor();
         let addr: u16 = 0x1000;
 
         let mut val = 0x77;
@@ -565,7 +565,7 @@ mod tests {
 
     #[test]
     fn test_ldx() {
-        let mut cpu = Processor::new();
+        let mut cpu = new_processor();
         let addr: u16 = 0x1000;
 
         let mut val = 0x77;
@@ -586,7 +586,7 @@ mod tests {
 
     #[test]
     fn test_ldy() {
-        let mut cpu = Processor::new();
+        let mut cpu = new_processor();
         let addr: u16 = 0x1000;
 
         let mut val = 0x77;
@@ -607,7 +607,7 @@ mod tests {
 
     #[test]
     fn test_sta() {
-        let mut cpu = Processor::new();
+        let mut cpu = new_processor();
         let addr: u16 = 0x2000;
 
         let val = 0x9f;
@@ -619,7 +619,7 @@ mod tests {
 
     #[test]
     fn test_stx() {
-        let mut cpu = Processor::new();
+        let mut cpu = new_processor();
         let addr: u16 = 0x2000;
 
         let val = 0xfc;
@@ -631,7 +631,7 @@ mod tests {
 
     #[test]
     fn test_sty() {
-        let mut cpu = Processor::new();
+        let mut cpu = new_processor();
         let addr: u16 = 0x2000;
 
         let val = 0x04;
@@ -643,7 +643,7 @@ mod tests {
 
     #[test]
     fn test_tax() {
-        let mut cpu = Processor::new();
+        let mut cpu = new_processor();
 
         let val = 0xff;
         cpu.core.a = val;
@@ -669,7 +669,7 @@ mod tests {
 
     #[test]
     fn test_tay() {
-        let mut cpu = Processor::new();
+        let mut cpu = new_processor();
 
         let val = 0xff;
         cpu.core.a = val;
@@ -695,7 +695,7 @@ mod tests {
 
     #[test]
     fn test_txa() {
-        let mut cpu = Processor::new();
+        let mut cpu = new_processor();
 
         let val = 0xff;
         cpu.core.x = val;
@@ -720,7 +720,7 @@ mod tests {
     }
     #[test]
     fn test_tya() {
-        let mut cpu = Processor::new();
+        let mut cpu = new_processor();
 
         let val = 0xff;
         cpu.core.y = val;
