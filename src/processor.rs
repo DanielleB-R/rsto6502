@@ -1,5 +1,4 @@
 use crate::flags::Flags;
-use crate::instructions::Instruction;
 use crate::memory::{Memory, RandomAccessMemory};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -18,7 +17,6 @@ pub struct Processor<T: Memory> {
     pub memory: T,
     // TODO: Is there a better way to do this?
     pub jumped: bool,
-    pub(crate) instructions: Vec<Instruction<T>>,
 }
 
 impl Core {
@@ -46,15 +44,11 @@ pub fn new_processor() -> Processor<RandomAccessMemory> {
 
 impl<T: Memory> Processor<T> {
     pub fn with_memory(memory: T) -> Self {
-        let mut processor = Processor {
+        Self {
             core: Core::new(),
             memory,
             jumped: false,
-            instructions: vec![Default::default(); 256],
-        };
-        processor.build_instruction_table();
-
-        processor
+        }
     }
 
     fn branch(&mut self, addr: u16) {
@@ -515,12 +509,11 @@ impl<T: Memory> Processor<T> {
     pub fn emulate_instruction(&mut self) {
         let opcode = self.memory.read(self.core.pc);
 
-        let instruction = self.instructions[opcode as usize];
-        instruction.apply(self);
+        let length = self.emulate_entry(opcode);
         if self.jumped {
             self.jumped = false;
         } else {
-            self.core.pc += instruction.length();
+            self.core.pc += length;
         }
     }
 }

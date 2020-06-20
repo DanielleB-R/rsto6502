@@ -1,282 +1,238 @@
+use crate::decode;
 use crate::memory::Memory;
 use crate::processor::Processor;
 
-type NoOperandOperation<T> = fn(&mut Processor<T>);
-type Operation<T> = fn(&mut Processor<T>, u16);
-
-#[derive(Clone)]
-pub enum Instruction<T: Memory> {
-    NoOperand(NoOperandOperation<T>),
-    Immediate(Operation<T>),
-    Absolute(Operation<T>),
-    AbsoluteX(Operation<T>),
-    AbsoluteY(Operation<T>),
-    ZeroPage(Operation<T>),
-    ZeroPageX(Operation<T>),
-    ZeroPageY(Operation<T>),
-    Indirect(Operation<T>),
-    IndexedIndirect(Operation<T>),
-    IndirectIndexed(Operation<T>),
-    Invalid,
-}
-
-impl<T: Memory> Copy for Instruction<T> {}
-
-impl<T: Memory> Default for Instruction<T> {
-    fn default() -> Self {
-        Self::Invalid
-    }
-}
-
-impl<T: Memory> Instruction<T> {
-    pub fn length(&self) -> u16 {
-        match self {
-            Self::NoOperand(_) => 1,
-            Self::Immediate(_) => 2,
-            Self::Absolute(_) => 3,
-            Self::AbsoluteX(_) => 3,
-            Self::AbsoluteY(_) => 3,
-            Self::ZeroPage(_) => 2,
-            Self::ZeroPageX(_) => 2,
-            Self::ZeroPageY(_) => 2,
-            Self::Indirect(_) => 3,
-            Self::IndexedIndirect(_) => 2,
-            Self::IndirectIndexed(_) => 2,
-            Self::Invalid => 1,
-        }
-    }
-
-    pub fn apply(&self, cpu: &mut Processor<T>) {
-        match self {
-            Self::NoOperand(op) => op(cpu),
-            Self::Immediate(op) => op(cpu, cpu.immediate_address()),
-            Self::Absolute(op) => op(cpu, cpu.absolute_address()),
-            Self::AbsoluteX(op) => op(cpu, cpu.absolute_x_address()),
-            Self::AbsoluteY(op) => op(cpu, cpu.absolute_y_address()),
-            Self::ZeroPage(op) => op(cpu, cpu.zero_page_address()),
-            Self::ZeroPageX(op) => op(cpu, cpu.zero_page_x_address()),
-            Self::ZeroPageY(op) => op(cpu, cpu.zero_page_y_address()),
-            Self::Indirect(op) => op(cpu, cpu.indirect_address()),
-            Self::IndexedIndirect(op) => op(cpu, cpu.indexed_indirect_address()),
-            Self::IndirectIndexed(op) => op(cpu, cpu.indirect_indexed_address()),
-            Self::Invalid => panic!("invalid opcode"),
-        }
-    }
+mod length {
+    pub const immediate: u16 = 2;
+    pub const absolute: u16 = 3;
+    pub const absolute_x: u16 = 3;
+    pub const absolute_y: u16 = 3;
+    pub const zero_page: u16 = 2;
+    pub const zero_page_x: u16 = 2;
+    pub const zero_page_y: u16 = 2;
+    pub const indirect: u16 = 3;
+    pub const indexed_indirect: u16 = 2;
+    pub const indirect_indexed: u16 = 2;
 }
 
 impl<T: Memory> Processor<T> {
-    pub(crate) fn immediate_address(&self) -> u16 {
+    pub(crate) fn immediate(&self) -> u16 {
         self.core.pc + 1
     }
 
     pub(crate) fn immediate_operand(&self) -> u8 {
-        self.memory.read(self.immediate_address())
+        self.memory.read(self.immediate())
     }
 
-    pub(crate) fn zero_page_address(&self) -> u16 {
+    pub(crate) fn zero_page(&self) -> u16 {
         self.immediate_operand() as u16
     }
 
-    pub(crate) fn zero_page_x_address(&self) -> u16 {
+    pub(crate) fn zero_page_x(&self) -> u16 {
         self.immediate_operand().wrapping_add(self.core.x) as u16
     }
 
-    pub(crate) fn zero_page_y_address(&self) -> u16 {
+    pub(crate) fn zero_page_y(&self) -> u16 {
         self.immediate_operand().wrapping_add(self.core.y) as u16
     }
 
-    pub(crate) fn absolute_address(&self) -> u16 {
-        self.memory.read_word(self.immediate_address())
+    pub(crate) fn absolute(&self) -> u16 {
+        self.memory.read_word(self.immediate())
     }
 
-    pub(crate) fn absolute_x_address(&self) -> u16 {
-        self.absolute_address().wrapping_add(self.core.x as u16)
+    pub(crate) fn absolute_x(&self) -> u16 {
+        self.absolute().wrapping_add(self.core.x as u16)
     }
 
-    pub(crate) fn absolute_y_address(&self) -> u16 {
-        self.absolute_address().wrapping_add(self.core.y as u16)
+    pub(crate) fn absolute_y(&self) -> u16 {
+        self.absolute().wrapping_add(self.core.y as u16)
     }
 
-    pub(crate) fn indirect_address(&self) -> u16 {
-        self.memory.read_word(self.absolute_address())
+    pub(crate) fn indirect(&self) -> u16 {
+        self.memory.read_word(self.absolute())
     }
 
-    pub(crate) fn indexed_indirect_address(&self) -> u16 {
-        self.memory.read_word(self.zero_page_x_address())
+    pub(crate) fn indexed_indirect(&self) -> u16 {
+        self.memory.read_word(self.zero_page_x())
     }
 
-    pub(crate) fn indirect_indexed_address(&self) -> u16 {
+    pub(crate) fn indirect_indexed(&self) -> u16 {
         self.memory
-            .read_word(self.zero_page_address())
+            .read_word(self.zero_page())
             .wrapping_add(self.core.y as u16)
     }
 
-    pub(crate) fn build_instruction_table(&mut self) {
-        self.instructions[0x00] = Instruction::NoOperand(Self::brk);
-        self.instructions[0x01] = Instruction::IndexedIndirect(Self::ora);
-        self.instructions[0x05] = Instruction::ZeroPage(Self::ora);
-        self.instructions[0x06] = Instruction::ZeroPage(Self::asl);
-        self.instructions[0x08] = Instruction::NoOperand(Self::php);
-        self.instructions[0x09] = Instruction::Immediate(Self::ora);
-        self.instructions[0x0a] = Instruction::NoOperand(Self::asla);
-        self.instructions[0x0d] = Instruction::Absolute(Self::ora);
-        self.instructions[0x0e] = Instruction::Absolute(Self::asl);
+    pub(crate) fn emulate_entry(&mut self, opcode: u8) -> u16 {
+        decode! {
+            opcode;
+            self,
 
-        self.instructions[0x10] = Instruction::Immediate(Self::bpl);
-        self.instructions[0x11] = Instruction::IndirectIndexed(Self::ora);
-        self.instructions[0x15] = Instruction::ZeroPageX(Self::ora);
-        self.instructions[0x16] = Instruction::ZeroPageX(Self::asl);
-        self.instructions[0x18] = Instruction::NoOperand(Self::clc);
-        self.instructions[0x19] = Instruction::AbsoluteY(Self::ora);
-        self.instructions[0x1d] = Instruction::AbsoluteX(Self::ora);
-        self.instructions[0x1e] = Instruction::AbsoluteX(Self::asl);
+            0x00 => (brk,),
+            0x01 => (ora, indexed_indirect),
+            0x05 => (ora, zero_page),
+            0x06 => (asl, zero_page),
+            0x08 => (php,),
+            0x09 => (ora, immediate),
+            0x0a => (asla, ),
+            0x0d => (ora, absolute),
+            0x0e => (asl, absolute),
 
-        self.instructions[0x20] = Instruction::Absolute(Self::jsr);
-        self.instructions[0x21] = Instruction::IndexedIndirect(Self::and);
-        self.instructions[0x24] = Instruction::ZeroPage(Self::bit);
-        self.instructions[0x25] = Instruction::ZeroPage(Self::and);
-        self.instructions[0x26] = Instruction::ZeroPage(Self::rol);
-        self.instructions[0x28] = Instruction::NoOperand(Self::plp);
-        self.instructions[0x29] = Instruction::Immediate(Self::and);
-        self.instructions[0x2a] = Instruction::NoOperand(Self::rola);
-        self.instructions[0x2c] = Instruction::Absolute(Self::bit);
-        self.instructions[0x2d] = Instruction::Absolute(Self::and);
-        self.instructions[0x2e] = Instruction::Absolute(Self::rol);
+            0x10 => (bpl, immediate),
+            0x11 => (ora, indirect_indexed),
+            0x15 => (ora, zero_page_x),
+            0x16 => (asl, zero_page_x),
+            0x18 => (clc, ),
+            0x19 => (ora, absolute_y),
+            0x1d => (ora, absolute_x),
+            0x1e => (asl, absolute_x),
 
-        self.instructions[0x30] = Instruction::Immediate(Self::bmi);
-        self.instructions[0x31] = Instruction::IndirectIndexed(Self::and);
-        self.instructions[0x35] = Instruction::ZeroPageX(Self::and);
-        self.instructions[0x36] = Instruction::ZeroPageX(Self::rol);
-        self.instructions[0x38] = Instruction::NoOperand(Self::sec);
-        self.instructions[0x39] = Instruction::AbsoluteY(Self::and);
-        self.instructions[0x3d] = Instruction::AbsoluteX(Self::and);
-        self.instructions[0x3e] = Instruction::AbsoluteX(Self::rol);
+            0x20 => (jsr, absolute),
+            0x21 => (and, indexed_indirect),
+            0x24 => (bit, zero_page),
+            0x25 => (and, zero_page),
+            0x26 => (rol, zero_page),
+            0x28 => (plp, ),
+            0x29 => (and, immediate),
+            0x2a => (rola, ),
+            0x2c => (bit, absolute),
+            0x2d => (and, absolute),
+            0x2e => (rol, absolute),
 
-        self.instructions[0x40] = Instruction::NoOperand(Self::rti);
-        self.instructions[0x41] = Instruction::IndexedIndirect(Self::eor);
-        self.instructions[0x45] = Instruction::ZeroPage(Self::eor);
-        self.instructions[0x46] = Instruction::ZeroPage(Self::lsr);
-        self.instructions[0x48] = Instruction::NoOperand(Self::pha);
-        self.instructions[0x49] = Instruction::Immediate(Self::eor);
-        self.instructions[0x4a] = Instruction::NoOperand(Self::lsra);
-        self.instructions[0x4c] = Instruction::Absolute(Self::jmp);
-        self.instructions[0x4d] = Instruction::Absolute(Self::eor);
-        self.instructions[0x4e] = Instruction::Absolute(Self::lsr);
+            0x30 => (bmi, immediate),
+            0x31 => (and, indirect_indexed),
+            0x35 => (and, zero_page_x),
+            0x36 => (rol, zero_page_x),
+            0x38 => (sec, ),
+            0x39 => (and, absolute_y),
+            0x3d => (and, absolute_x),
+            0x3e => (rol, absolute_x),
 
-        self.instructions[0x50] = Instruction::Immediate(Self::bvc);
-        self.instructions[0x51] = Instruction::IndirectIndexed(Self::eor);
-        self.instructions[0x55] = Instruction::ZeroPageX(Self::eor);
-        self.instructions[0x56] = Instruction::ZeroPageX(Self::lsr);
-        self.instructions[0x58] = Instruction::NoOperand(Self::cli);
-        self.instructions[0x59] = Instruction::AbsoluteY(Self::eor);
-        self.instructions[0x5d] = Instruction::AbsoluteX(Self::eor);
-        self.instructions[0x5e] = Instruction::AbsoluteX(Self::lsr);
+            0x40 => (rti, ),
+            0x41 => (eor, indexed_indirect),
+            0x45 => (eor, zero_page),
+            0x46 => (lsr, zero_page),
+            0x48 => (pha, ),
+            0x49 => (eor, immediate),
+            0x4a => (lsra, ),
+            0x4c => (jmp, absolute),
+            0x4d => (eor, absolute),
+            0x4e => (lsr, absolute),
 
-        self.instructions[0x60] = Instruction::NoOperand(Self::rts);
-        self.instructions[0x61] = Instruction::IndexedIndirect(Self::adc);
-        self.instructions[0x65] = Instruction::ZeroPage(Self::adc);
-        self.instructions[0x66] = Instruction::ZeroPage(Self::ror);
-        self.instructions[0x68] = Instruction::NoOperand(Self::pla);
-        self.instructions[0x69] = Instruction::Immediate(Self::adc);
-        self.instructions[0x6a] = Instruction::NoOperand(Self::rora);
-        self.instructions[0x6c] = Instruction::Indirect(Self::jmp);
-        self.instructions[0x6d] = Instruction::Absolute(Self::adc);
-        self.instructions[0x6e] = Instruction::Absolute(Self::ror);
+            0x50 => (bvc, immediate),
+            0x51 => (eor, indirect_indexed),
+            0x55 => (eor, zero_page_x),
+            0x56 => (lsr, zero_page_x),
+            0x58 => (cli, ),
+            0x59 => (eor, absolute_y),
+            0x5d => (eor, absolute_x),
+            0x5e => (lsr, absolute_x),
 
-        self.instructions[0x70] = Instruction::Immediate(Self::bvs);
-        self.instructions[0x71] = Instruction::IndirectIndexed(Self::adc);
-        self.instructions[0x75] = Instruction::ZeroPageX(Self::adc);
-        self.instructions[0x76] = Instruction::ZeroPageX(Self::ror);
-        self.instructions[0x78] = Instruction::NoOperand(Self::sei);
-        self.instructions[0x79] = Instruction::AbsoluteY(Self::adc);
-        self.instructions[0x7d] = Instruction::AbsoluteX(Self::adc);
-        self.instructions[0x7e] = Instruction::AbsoluteX(Self::ror);
+            0x60 => (rts, ),
+            0x61 => (adc, indexed_indirect),
+            0x65 => (adc, zero_page),
+            0x66 => (ror, zero_page),
+            0x68 => (pla,),
+            0x69 => (adc, immediate),
+            0x6a => (rora, ),
+            0x6c => (jmp, indirect),
+            0x6d => (adc, absolute),
+            0x6e => (ror, absolute),
 
-        self.instructions[0x81] = Instruction::IndexedIndirect(Self::sta);
-        self.instructions[0x84] = Instruction::ZeroPage(Self::sty);
-        self.instructions[0x85] = Instruction::ZeroPage(Self::sta);
-        self.instructions[0x86] = Instruction::ZeroPage(Self::stx);
-        self.instructions[0x88] = Instruction::NoOperand(Self::dey);
-        self.instructions[0x8a] = Instruction::NoOperand(Self::txa);
-        self.instructions[0x8c] = Instruction::Absolute(Self::sty);
-        self.instructions[0x8d] = Instruction::Absolute(Self::sta);
-        self.instructions[0x8e] = Instruction::Absolute(Self::stx);
+            0x70 => (bvs, immediate),
+            0x71 => (adc, indirect_indexed),
+            0x75 => (adc, zero_page_x),
+            0x76 => (ror, zero_page_x),
+            0x78 => (sei, ),
+            0x79 => (adc, absolute_y),
+            0x7d => (adc, absolute_x),
+            0x7e => (ror, absolute_x),
 
-        self.instructions[0x90] = Instruction::Immediate(Self::bcc);
-        self.instructions[0x91] = Instruction::IndirectIndexed(Self::sta);
-        self.instructions[0x94] = Instruction::ZeroPageX(Self::sty);
-        self.instructions[0x95] = Instruction::ZeroPageX(Self::sta);
-        self.instructions[0x96] = Instruction::ZeroPageY(Self::stx);
-        self.instructions[0x98] = Instruction::NoOperand(Self::tya);
-        self.instructions[0x99] = Instruction::AbsoluteY(Self::sta);
-        self.instructions[0x9a] = Instruction::NoOperand(Self::txs);
-        self.instructions[0x9d] = Instruction::AbsoluteX(Self::sta);
+            0x81 => (sta, indexed_indirect),
+            0x84 => (sty, zero_page),
+            0x85 => (sta, zero_page),
+            0x86 => (stx, zero_page),
+            0x88 => (dey, ),
+            0x8a => (txa, ),
+            0x8c => (sty, absolute),
+            0x8d => (sta, absolute),
+            0x8e => (stx, absolute),
 
-        self.instructions[0xa0] = Instruction::Immediate(Self::ldy);
-        self.instructions[0xa1] = Instruction::IndexedIndirect(Self::lda);
-        self.instructions[0xa2] = Instruction::Immediate(Self::ldx);
-        self.instructions[0xa4] = Instruction::ZeroPage(Self::ldy);
-        self.instructions[0xa5] = Instruction::ZeroPage(Self::lda);
-        self.instructions[0xa6] = Instruction::ZeroPage(Self::ldx);
-        self.instructions[0xa8] = Instruction::NoOperand(Self::tay);
-        self.instructions[0xa9] = Instruction::Immediate(Self::lda);
-        self.instructions[0xaa] = Instruction::NoOperand(Self::tax);
-        self.instructions[0xac] = Instruction::Absolute(Self::ldy);
-        self.instructions[0xad] = Instruction::Absolute(Self::lda);
-        self.instructions[0xae] = Instruction::Absolute(Self::ldx);
+            0x90 => (bcc, immediate),
+            0x91 => (sta, indirect_indexed),
+            0x94 => (sty, zero_page_x),
+            0x95 => (sta, zero_page_x),
+            0x96 => (stx, zero_page_y),
+            0x98 => (tya, ),
+            0x99 => (sta, absolute_y),
+            0x9a => (txs, ),
+            0x9d => (sta, absolute_x),
 
-        self.instructions[0xb0] = Instruction::Immediate(Self::bcs);
-        self.instructions[0xb1] = Instruction::IndirectIndexed(Self::lda);
-        self.instructions[0xb4] = Instruction::ZeroPageX(Self::ldy);
-        self.instructions[0xb5] = Instruction::ZeroPageX(Self::lda);
-        self.instructions[0xb6] = Instruction::ZeroPageY(Self::ldx);
-        self.instructions[0xb8] = Instruction::NoOperand(Self::clv);
-        self.instructions[0xb9] = Instruction::AbsoluteY(Self::lda);
-        self.instructions[0xba] = Instruction::NoOperand(Self::tsx);
-        self.instructions[0xbc] = Instruction::AbsoluteX(Self::ldy);
-        self.instructions[0xbd] = Instruction::AbsoluteX(Self::lda);
-        self.instructions[0xbe] = Instruction::AbsoluteY(Self::ldx);
+            0xa0 => (ldy, immediate),
+            0xa1 => (lda, indexed_indirect),
+            0xa2 => (ldx, immediate),
+            0xa4 => (ldy, zero_page),
+            0xa5 => (lda, zero_page),
+            0xa6 => (ldx, zero_page),
+            0xa8 => (tay, ),
+            0xa9 => (lda, immediate),
+            0xaa => (tax, ),
+            0xac => (ldy, absolute),
+            0xad => (lda, absolute),
+            0xae => (ldx, absolute),
 
-        self.instructions[0xc0] = Instruction::Immediate(Self::cpy);
-        self.instructions[0xc1] = Instruction::IndexedIndirect(Self::cmp);
-        self.instructions[0xc4] = Instruction::ZeroPage(Self::cpy);
-        self.instructions[0xc5] = Instruction::ZeroPage(Self::cmp);
-        self.instructions[0xc6] = Instruction::ZeroPage(Self::dec);
-        self.instructions[0xc8] = Instruction::NoOperand(Self::iny);
-        self.instructions[0xc9] = Instruction::Immediate(Self::cmp);
-        self.instructions[0xca] = Instruction::NoOperand(Self::dex);
-        self.instructions[0xcc] = Instruction::Absolute(Self::cpy);
-        self.instructions[0xcd] = Instruction::Absolute(Self::cmp);
-        self.instructions[0xce] = Instruction::Absolute(Self::dec);
+            0xb0 => (bcs, immediate),
+            0xb1 => (lda, indirect_indexed),
+            0xb4 => (ldy, zero_page_x),
+            0xb5 => (lda, zero_page_x),
+            0xb6 => (ldx, zero_page_y),
+            0xb8 => (clv, ),
+            0xb9 => (lda, absolute_y),
+            0xba => (tsx, ),
+            0xbc => (ldy, absolute_x),
+            0xbd => (lda, absolute_x),
+            0xbe => (ldx, absolute_y),
 
-        self.instructions[0xd0] = Instruction::Immediate(Self::bne);
-        self.instructions[0xd1] = Instruction::IndirectIndexed(Self::cmp);
-        self.instructions[0xd5] = Instruction::ZeroPageX(Self::cmp);
-        self.instructions[0xd6] = Instruction::ZeroPageX(Self::dec);
-        self.instructions[0xd8] = Instruction::NoOperand(Self::cld);
-        self.instructions[0xd9] = Instruction::AbsoluteY(Self::cmp);
-        self.instructions[0xdd] = Instruction::AbsoluteX(Self::cmp);
-        self.instructions[0xde] = Instruction::AbsoluteX(Self::dec);
+            0xc0 => (cpy, immediate),
+            0xc1 => (cmp, indexed_indirect),
+            0xc4 => (cpy, zero_page),
+            0xc5 => (cmp, zero_page),
+            0xc6 => (cmp, zero_page),
+            0xc8 => (iny, ),
+            0xc9 => (cmp, immediate),
+            0xca => (dex, ),
+            0xcc => (cpy, absolute),
+            0xcd => (cmp, absolute),
+            0xce => (cmp, absolute),
 
-        self.instructions[0xe0] = Instruction::Immediate(Self::cpx);
-        self.instructions[0xe1] = Instruction::IndexedIndirect(Self::sbc);
-        self.instructions[0xe4] = Instruction::ZeroPage(Self::cpx);
-        self.instructions[0xe5] = Instruction::ZeroPage(Self::sbc);
-        self.instructions[0xe6] = Instruction::ZeroPage(Self::inc);
-        self.instructions[0xe8] = Instruction::NoOperand(Self::inx);
-        self.instructions[0xe9] = Instruction::Immediate(Self::sbc);
-        self.instructions[0xea] = Instruction::NoOperand(Self::nop);
-        self.instructions[0xec] = Instruction::Absolute(Self::cpx);
-        self.instructions[0xed] = Instruction::Absolute(Self::sbc);
-        self.instructions[0xee] = Instruction::Absolute(Self::inc);
+            0xd0 => (bne, immediate),
+            0xd1 => (cmp, indirect_indexed),
+            0xd5 => (cmp, zero_page_x),
+            0xd6 => (dec, zero_page_x),
+            0xd8 => (cld, ),
+            0xd9 => (cmp, absolute_y),
+            0xdd => (cmp, absolute_x),
+            0xde => (dec, absolute_x),
 
-        self.instructions[0xf0] = Instruction::Immediate(Self::beq);
-        self.instructions[0xf1] = Instruction::IndirectIndexed(Self::sbc);
-        self.instructions[0xf5] = Instruction::ZeroPageX(Self::sbc);
-        self.instructions[0xf6] = Instruction::ZeroPageX(Self::inc);
-        self.instructions[0xf8] = Instruction::NoOperand(Self::sed);
-        self.instructions[0xf9] = Instruction::AbsoluteY(Self::sbc);
-        self.instructions[0xfd] = Instruction::AbsoluteX(Self::sbc);
-        self.instructions[0xfe] = Instruction::AbsoluteX(Self::inc);
+            0xe0 => (cpx, immediate),
+            0xe1 => (sbc, indexed_indirect),
+            0xe4 => (cpx, zero_page),
+            0xe5 => (sbc, zero_page),
+            0xe6 => (inc, zero_page),
+            0xe8 => (inx, ),
+            0xe9 => (sbc, immediate),
+            0xea => (nop, ),
+            0xec => (cpx, absolute),
+            0xed => (sbc, absolute),
+            0xee => (inc, absolute),
+
+            0xf0 => (beq, immediate),
+            0xf1 => (sbc, indirect_indexed),
+            0xf5 => (sbc, zero_page_x),
+            0xf6 => (inc, zero_page_x),
+            0xf8 => (sed, ),
+            0xf9 => (sbc, absolute_y),
+            0xfd => (sbc, absolute_x),
+            0xfe => (inc, absolute_x)
+        }
     }
 }
