@@ -20,23 +20,6 @@ macro_rules! alter_default_by {
     }
 }
 
-#[macro_export]
-macro_rules! decode {
-    (
-        $opcode:expr;
-        $self:ident,
-        $($code:literal => ($operation:ident, $($addressing:ident)?)),+
-    ) => {
-        match $opcode {
-            $($code => {
-                $self.$operation($($self.$addressing())?);
-                1 $( - 1 + length::$addressing)?
-            })+
-            _ => panic!("invalid opcode")
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

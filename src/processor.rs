@@ -1,3 +1,4 @@
+use crate::decode_6502;
 use crate::flags::Flags;
 use crate::memory::{Memory, RandomAccessMemory};
 
@@ -509,7 +510,7 @@ impl<T: Memory> Processor<T> {
     pub fn emulate_instruction(&mut self) {
         let opcode = self.memory.read(self.core.pc);
 
-        let length = self.emulate_entry(opcode);
+        let length = decode_6502!(opcode; self);
         if self.jumped {
             self.jumped = false;
         } else {

@@ -1,71 +1,29 @@
-use crate::decode;
 use crate::memory::Memory;
 use crate::processor::Processor;
 
-mod length {
-    pub const immediate: u16 = 2;
-    pub const absolute: u16 = 3;
-    pub const absolute_x: u16 = 3;
-    pub const absolute_y: u16 = 3;
-    pub const zero_page: u16 = 2;
-    pub const zero_page_x: u16 = 2;
-    pub const zero_page_y: u16 = 2;
-    pub const indirect: u16 = 3;
-    pub const indexed_indirect: u16 = 2;
-    pub const indirect_indexed: u16 = 2;
+#[macro_export]
+macro_rules! decode {
+    (
+        $opcode:expr;
+        $self:ident,
+        $($code:literal => ($operation:ident, $($addressing:ident)?)),+
+    ) => {
+        match $opcode {
+            $($code => {
+                $self.$operation($($self.$addressing())?);
+                1 $( - 1 + $crate::instructions::length::$addressing)?
+            })+
+            _ => panic!("invalid opcode")
+        }
+    }
 }
 
-impl<T: Memory> Processor<T> {
-    pub(crate) fn immediate(&self) -> u16 {
-        self.core.pc + 1
-    }
-
-    pub(crate) fn immediate_operand(&self) -> u8 {
-        self.memory.read(self.immediate())
-    }
-
-    pub(crate) fn zero_page(&self) -> u16 {
-        self.immediate_operand() as u16
-    }
-
-    pub(crate) fn zero_page_x(&self) -> u16 {
-        self.immediate_operand().wrapping_add(self.core.x) as u16
-    }
-
-    pub(crate) fn zero_page_y(&self) -> u16 {
-        self.immediate_operand().wrapping_add(self.core.y) as u16
-    }
-
-    pub(crate) fn absolute(&self) -> u16 {
-        self.memory.read_word(self.immediate())
-    }
-
-    pub(crate) fn absolute_x(&self) -> u16 {
-        self.absolute().wrapping_add(self.core.x as u16)
-    }
-
-    pub(crate) fn absolute_y(&self) -> u16 {
-        self.absolute().wrapping_add(self.core.y as u16)
-    }
-
-    pub(crate) fn indirect(&self) -> u16 {
-        self.memory.read_word(self.absolute())
-    }
-
-    pub(crate) fn indexed_indirect(&self) -> u16 {
-        self.memory.read_word(self.zero_page_x())
-    }
-
-    pub(crate) fn indirect_indexed(&self) -> u16 {
-        self.memory
-            .read_word(self.zero_page())
-            .wrapping_add(self.core.y as u16)
-    }
-
-    pub(crate) fn emulate_entry(&mut self, opcode: u8) -> u16 {
-        decode! {
-            opcode;
-            self,
+#[macro_export]
+macro_rules! decode_6502 {
+    ($opcode:expr; $self:ident) => {
+        $crate::decode! {
+            $opcode;
+            $self,
 
             0x00 => (brk,),
             0x01 => (ora, indexed_indirect),
@@ -234,5 +192,70 @@ impl<T: Memory> Processor<T> {
             0xfd => (sbc, absolute_x),
             0xfe => (inc, absolute_x)
         }
+    };
+}
+
+pub mod length {
+    pub const immediate: u16 = 2;
+    pub const absolute: u16 = 3;
+    pub const absolute_x: u16 = 3;
+    pub const absolute_y: u16 = 3;
+    pub const zero_page: u16 = 2;
+    pub const zero_page_x: u16 = 2;
+    pub const zero_page_y: u16 = 2;
+    pub const indirect: u16 = 3;
+    pub const indexed_indirect: u16 = 2;
+    pub const indirect_indexed: u16 = 2;
+}
+
+impl<T: Memory> Processor<T> {
+    pub(crate) fn immediate(&self) -> u16 {
+        self.core.pc + 1
+    }
+
+    pub(crate) fn immediate_operand(&self) -> u8 {
+        self.memory.read(self.immediate())
+    }
+
+    pub(crate) fn zero_page(&self) -> u16 {
+        self.immediate_operand() as u16
+    }
+
+    pub(crate) fn zero_page_x(&self) -> u16 {
+        self.immediate_operand().wrapping_add(self.core.x) as u16
+    }
+
+    pub(crate) fn zero_page_y(&self) -> u16 {
+        self.immediate_operand().wrapping_add(self.core.y) as u16
+    }
+
+    pub(crate) fn absolute(&self) -> u16 {
+        self.memory.read_word(self.immediate())
+    }
+
+    pub(crate) fn absolute_x(&self) -> u16 {
+        self.absolute().wrapping_add(self.core.x as u16)
+    }
+
+    pub(crate) fn absolute_y(&self) -> u16 {
+        self.absolute().wrapping_add(self.core.y as u16)
+    }
+
+    pub(crate) fn indirect(&self) -> u16 {
+        self.memory.read_word(self.absolute())
+    }
+
+    pub(crate) fn indexed_indirect(&self) -> u16 {
+        self.memory.read_word(self.zero_page_x())
+    }
+
+    pub(crate) fn indirect_indexed(&self) -> u16 {
+        self.memory
+            .read_word(self.zero_page())
+            .wrapping_add(self.core.y as u16)
+    }
+
+    pub(crate) fn emulate_entry(&mut self, opcode: u8) -> u16 {
+        decode_6502!(opcode; self)
     }
 }
