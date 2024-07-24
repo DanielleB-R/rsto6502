@@ -16,9 +16,9 @@ pub struct RandomAccessMemory {
 }
 
 impl RandomAccessMemory {
-    pub fn new(size: u16) -> Self {
+    pub fn new(size: usize) -> Self {
         RandomAccessMemory {
-            contents: vec![0; size as usize],
+            contents: vec![0; size],
         }
     }
 }

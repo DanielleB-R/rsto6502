@@ -570,7 +570,7 @@ mod tests {
     use crate::{alter_by, alter_default_by};
 
     pub fn new_processor() -> Processor<RandomAccessMemory> {
-        Processor::with_memory(RandomAccessMemory::new(0xffff))
+        Processor::with_memory(RandomAccessMemory::new(0x1000000))
     }
 
     #[test]
