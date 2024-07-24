@@ -22,22 +22,20 @@ macro_rules! alter_default_by {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_alter_by() {
         #[derive(PartialEq, Debug, Clone, Default)]
         struct TestInner {
             i: i8,
             j: i16,
-        };
+        }
 
         #[derive(PartialEq, Debug, Clone, Default)]
         struct TestOuter {
             a: char,
             b: char,
             i: TestInner,
-        };
+        }
 
         let test = TestOuter {
             a: 'r',

@@ -50,6 +50,12 @@ impl ReadOnlyMemory {
     }
 }
 
+impl From<Vec<u8>> for ReadOnlyMemory {
+    fn from(value: Vec<u8>) -> Self {
+        Self { contents: value }
+    }
+}
+
 impl Memory for ReadOnlyMemory {
     fn read(&self, addr: u16) -> u8 {
         self.contents[addr as usize]

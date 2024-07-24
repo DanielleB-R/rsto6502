@@ -1,6 +1,6 @@
 use crate::decode_6502;
 use crate::flags::Flags;
-use crate::memory::{Memory, RandomAccessMemory};
+use crate::memory::Memory;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Core {
@@ -37,10 +37,6 @@ impl Default for Core {
     fn default() -> Self {
         Self::new()
     }
-}
-
-pub fn new_processor() -> Processor<RandomAccessMemory> {
-    Processor::with_memory(RandomAccessMemory::new(0xffff))
 }
 
 impl<T: Memory> Processor<T> {
@@ -570,7 +566,12 @@ impl<T: Memory> Processor<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory::RandomAccessMemory;
     use crate::{alter_by, alter_default_by};
+
+    pub fn new_processor() -> Processor<RandomAccessMemory> {
+        Processor::with_memory(RandomAccessMemory::new(0xffff))
+    }
 
     #[test]
     fn test_core_new() {
@@ -582,6 +583,42 @@ mod tests {
         assert_eq!(core.f, Flags::default());
         assert_eq!(core.sp, 0xfe);
         assert_eq!(core.pc, 0x0000);
+    }
+
+    #[test]
+    fn test_clc() {
+        let mut cpu = new_processor();
+
+        cpu.core.f.c = true;
+        cpu.clc();
+        assert_eq!(cpu.core, alter_default_by!(Core, f.c => false));
+
+        cpu.clc();
+        assert_eq!(cpu.core, alter_default_by!(Core, f.c => false));
+    }
+
+    #[test]
+    fn test_cld() {
+        let mut cpu = new_processor();
+
+        cpu.core.f.d = true;
+        cpu.cld();
+        assert_eq!(cpu.core, alter_default_by!(Core, f.d => false));
+
+        cpu.cld();
+        assert_eq!(cpu.core, alter_default_by!(Core, f.d => false));
+    }
+
+    #[test]
+    fn test_cli() {
+        let mut cpu = new_processor();
+
+        cpu.core.f.i = true;
+        cpu.cli();
+        assert_eq!(cpu.core, alter_default_by!(Core, f.i => false));
+
+        cpu.cli();
+        assert_eq!(cpu.core, alter_default_by!(Core, f.i => false));
     }
 
     #[test]
