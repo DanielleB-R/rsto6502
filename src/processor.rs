@@ -375,6 +375,10 @@ impl<T: Memory> Processor<T> {
         // do nothing
     }
 
+    pub(crate) fn nop_addr(&mut self, _addr: u16) {
+        // do nothing
+    }
+
     pub(crate) fn ora(&mut self, addr: u16) {
         self.core.a |= self.memory.read(addr);
         self.core.f.set_z(self.core.a);

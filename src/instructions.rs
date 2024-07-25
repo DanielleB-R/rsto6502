@@ -10,7 +10,7 @@ macro_rules! decode {
                 $self.$operation($($self.$addressing())?);
                 1 $( - 1 + $crate::instructions::length::$addressing)?
             })+
-            _ => panic!("invalid opcode")
+            _ => panic!("invalid opcode 0x{:x}", $opcode)
         }
     }
 }
@@ -24,16 +24,19 @@ macro_rules! decode_6502 {
 
             0x00 => (brk,),
             0x01 => (ora, indexed_indirect),
+            0x04 => (nop_addr, zero_page), // UNDOCUMENTED
             0x05 => (ora, zero_page),
             0x06 => (asl, zero_page),
             0x08 => (php,),
             0x09 => (ora, immediate),
             0x0a => (asla, ),
+            0x0c => (nop_addr, absolute), // UNDOCUMENTED
             0x0d => (ora, absolute),
             0x0e => (asl, absolute),
 
             0x10 => (bpl, immediate),
             0x11 => (ora, indirect_indexed),
+            0x14 => (nop_addr, zero_page_x), // UNDOCUMENTED
             0x15 => (ora, zero_page_x),
             0x16 => (asl, zero_page_x),
             0x18 => (clc, ),
@@ -55,6 +58,7 @@ macro_rules! decode_6502 {
 
             0x30 => (bmi, immediate),
             0x31 => (and, indirect_indexed),
+            0x34 => (nop_addr, zero_page_x), // UNDOCUMENTED
             0x35 => (and, zero_page_x),
             0x36 => (rol, zero_page_x),
             0x38 => (sec, ),
@@ -64,6 +68,7 @@ macro_rules! decode_6502 {
 
             0x40 => (rti, ),
             0x41 => (eor, indexed_indirect),
+            0x44 => (nop_addr, zero_page), // UNDOCUMENTED
             0x45 => (eor, zero_page),
             0x46 => (lsr, zero_page),
             0x48 => (pha, ),
@@ -75,6 +80,7 @@ macro_rules! decode_6502 {
 
             0x50 => (bvc, immediate),
             0x51 => (eor, indirect_indexed),
+            0x54 => (nop_addr, zero_page_x), // UNDOCUMENTED
             0x55 => (eor, zero_page_x),
             0x56 => (lsr, zero_page_x),
             0x58 => (cli, ),
@@ -84,6 +90,7 @@ macro_rules! decode_6502 {
 
             0x60 => (rts, ),
             0x61 => (adc, indexed_indirect),
+            0x64 => (nop_addr, zero_page), // UNDOCUMENTED
             0x65 => (adc, zero_page),
             0x66 => (ror, zero_page),
             0x68 => (pla,),
@@ -95,6 +102,7 @@ macro_rules! decode_6502 {
 
             0x70 => (bvs, immediate),
             0x71 => (adc, indirect_indexed),
+            0x74 => (nop_addr, zero_page_x), // UNDOCUMENTED
             0x75 => (adc, zero_page_x),
             0x76 => (ror, zero_page_x),
             0x78 => (sei, ),
@@ -161,6 +169,7 @@ macro_rules! decode_6502 {
 
             0xd0 => (bne, immediate),
             0xd1 => (cmp, indirect_indexed),
+            0xd4 => (nop_addr, zero_page_x), // UNDOCUMENTED
             0xd5 => (cmp, zero_page_x),
             0xd6 => (dec, zero_page_x),
             0xd8 => (cld, ),
@@ -176,12 +185,14 @@ macro_rules! decode_6502 {
             0xe8 => (inx, ),
             0xe9 => (sbc, immediate),
             0xea => (nop, ),
+            0xeb => (sbc, immediate), // UNDOCUMENTED
             0xec => (cpx, absolute),
             0xed => (sbc, absolute),
             0xee => (inc, absolute),
 
             0xf0 => (beq, immediate),
             0xf1 => (sbc, indirect_indexed),
+            0xf4 => (nop_addr, zero_page_x), // UNDOCUMENTED
             0xf5 => (sbc, zero_page_x),
             0xf6 => (inc, zero_page_x),
             0xf8 => (sed, ),

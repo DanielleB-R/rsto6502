@@ -1,4 +1,4 @@
-pub trait Memory: Clone {
+pub trait Memory {
     fn read(&self, addr: u16) -> u8;
     fn read_word(&self, addr: u16) -> u16 {
         u16::from_le_bytes([self.read(addr), self.read(addr + 1)])

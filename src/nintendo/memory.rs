@@ -32,16 +32,15 @@ impl Memory for ApuIoProxy {
     }
 }
 
-#[derive(Debug, Clone)]
 pub struct NesMemoryMap {
     pub mirrored_ram: memory::MirroredMemory<memory::RandomAccessMemory>,
     pub ppu_proxy: memory::MirroredMemory<PpuProxy>,
     pub apu_io_proxy: ApuIoProxy,
-    pub cartridge: Cartridge,
+    pub cartridge: Box<dyn Cartridge>,
 }
 
 impl NesMemoryMap {
-    pub fn new(cartridge: Cartridge) -> Self {
+    pub fn new(cartridge: Box<dyn Cartridge>) -> Self {
         Self {
             mirrored_ram: memory::MirroredMemory::new(
                 memory::RandomAccessMemory::new(0x0800),

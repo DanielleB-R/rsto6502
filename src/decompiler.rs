@@ -113,6 +113,7 @@ impl<'a> Decompiler<'a> {
     decompile_mnemonic!(lsr, arg);
     decompile_mnemonic!(lsra, A);
     decompile_mnemonic!(nop);
+    decompile_mnemonic!(nop_addr, arg);
     decompile_mnemonic!(ora, arg);
     decompile_mnemonic!(pha);
     decompile_mnemonic!(php);
