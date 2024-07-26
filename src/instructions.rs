@@ -41,6 +41,8 @@ macro_rules! decode_6502 {
             0x16 => (asl, zero_page_x),
             0x18 => (clc, ),
             0x19 => (ora, absolute_y),
+            0x1a => (nop, ), // UNDOCUMENTED
+            0x1c => (nop_addr, absolute_x), // UNDOCUMENTED
             0x1d => (ora, absolute_x),
             0x1e => (asl, absolute_x),
 
@@ -63,6 +65,8 @@ macro_rules! decode_6502 {
             0x36 => (rol, zero_page_x),
             0x38 => (sec, ),
             0x39 => (and, absolute_y),
+            0x3a => (nop, ), // UNDOCUMENTED
+            0x3c => (nop_addr, absolute_x), // UNDOCUMENTED
             0x3d => (and, absolute_x),
             0x3e => (rol, absolute_x),
 
@@ -85,6 +89,8 @@ macro_rules! decode_6502 {
             0x56 => (lsr, zero_page_x),
             0x58 => (cli, ),
             0x59 => (eor, absolute_y),
+            0x5a => (nop, ), // UNDOCUMENTED
+            0x5c => (nop_addr, absolute_x), // UNDOCUMENTED
             0x5d => (eor, absolute_x),
             0x5e => (lsr, absolute_x),
 
@@ -107,24 +113,31 @@ macro_rules! decode_6502 {
             0x76 => (ror, zero_page_x),
             0x78 => (sei, ),
             0x79 => (adc, absolute_y),
+            0x7a => (nop, ), // UNDOCUMENTED
+            0x7c => (nop_addr, absolute_x), // UNDOCUMENTED
             0x7d => (adc, absolute_x),
             0x7e => (ror, absolute_x),
 
+            0x80 => (nop_addr, immediate), // UNDOCUMENTED
             0x81 => (sta, indexed_indirect),
+            0x83 => (sax, indexed_indirect),
             0x84 => (sty, zero_page),
             0x85 => (sta, zero_page),
             0x86 => (stx, zero_page),
+            0x87 => (sax, zero_page),
             0x88 => (dey, ),
             0x8a => (txa, ),
             0x8c => (sty, absolute),
             0x8d => (sta, absolute),
             0x8e => (stx, absolute),
+            0x8f => (sax, absolute),
 
             0x90 => (bcc, immediate),
             0x91 => (sta, indirect_indexed),
             0x94 => (sty, zero_page_x),
             0x95 => (sta, zero_page_x),
             0x96 => (stx, zero_page_y),
+            0x97 => (sax, zero_page_y),
             0x98 => (tya, ),
             0x99 => (sta, absolute_y),
             0x9a => (txs, ),
@@ -133,49 +146,64 @@ macro_rules! decode_6502 {
             0xa0 => (ldy, immediate),
             0xa1 => (lda, indexed_indirect),
             0xa2 => (ldx, immediate),
+            0xa3 => (lax, indexed_indirect),
             0xa4 => (ldy, zero_page),
             0xa5 => (lda, zero_page),
             0xa6 => (ldx, zero_page),
+            0xa7 => (lax, zero_page),
             0xa8 => (tay, ),
             0xa9 => (lda, immediate),
             0xaa => (tax, ),
             0xac => (ldy, absolute),
             0xad => (lda, absolute),
             0xae => (ldx, absolute),
+            0xaf => (lax, absolute),
 
             0xb0 => (bcs, immediate),
             0xb1 => (lda, indirect_indexed),
+            0xb3 => (lax, indirect_indexed),
             0xb4 => (ldy, zero_page_x),
             0xb5 => (lda, zero_page_x),
             0xb6 => (ldx, zero_page_y),
+            0xb7 => (lax, zero_page_y),
             0xb8 => (clv, ),
             0xb9 => (lda, absolute_y),
             0xba => (tsx, ),
             0xbc => (ldy, absolute_x),
             0xbd => (lda, absolute_x),
             0xbe => (ldx, absolute_y),
+            0xbf => (lax, absolute_y),
 
             0xc0 => (cpy, immediate),
             0xc1 => (cmp, indexed_indirect),
+            0xc3 => (dcp, indexed_indirect),
             0xc4 => (cpy, zero_page),
             0xc5 => (cmp, zero_page),
             0xc6 => (dec, zero_page),
+            0xc7 => (dcp, zero_page),
             0xc8 => (iny, ),
             0xc9 => (cmp, immediate),
             0xca => (dex, ),
             0xcc => (cpy, absolute),
             0xcd => (cmp, absolute),
             0xce => (dec, absolute),
+            0xcf => (dcp, absolute),
 
             0xd0 => (bne, immediate),
             0xd1 => (cmp, indirect_indexed),
+            0xd3 => (dcp, indirect_indexed),
             0xd4 => (nop_addr, zero_page_x), // UNDOCUMENTED
             0xd5 => (cmp, zero_page_x),
             0xd6 => (dec, zero_page_x),
+            0xd7 => (dcp, zero_page_x),
             0xd8 => (cld, ),
             0xd9 => (cmp, absolute_y),
+            0xda => (nop, ), // UNDOCUMENTED
+            0xdb => (dcp, absolute_y),
+            0xdc => (nop_addr, absolute_x), // UNDOCUMENTED
             0xdd => (cmp, absolute_x),
             0xde => (dec, absolute_x),
+            0xdf => (dcp, absolute_x),
 
             0xe0 => (cpx, immediate),
             0xe1 => (sbc, indexed_indirect),
@@ -197,6 +225,8 @@ macro_rules! decode_6502 {
             0xf6 => (inc, zero_page_x),
             0xf8 => (sed, ),
             0xf9 => (sbc, absolute_y),
+            0xfa => (nop, ), // UNDOCUMENTED
+            0xfc => (nop_addr, absolute_x), // UNDOCUMENTED
             0xfd => (sbc, absolute_x),
             0xfe => (inc, absolute_x)
         }

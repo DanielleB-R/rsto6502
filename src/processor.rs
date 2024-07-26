@@ -280,6 +280,16 @@ impl<T: Memory> Processor<T> {
         self.core.f.c = diff >= 0;
     }
 
+    // UNDOCUMENTED OPCODE
+    pub(crate) fn dcp(&mut self, addr: u16) {
+        let operand = self.memory.read(addr);
+        self.memory.write(addr, operand.wrapping_sub(1));
+        let diff = (self.core.a as i16) - (operand as i16);
+        self.core.f.n = diff < 0;
+        self.core.f.z = diff == 0;
+        self.core.f.c = diff >= 0;
+    }
+
     pub(crate) fn dec(&mut self, addr: u16) {
         let mut operand = self.memory.read(addr);
         operand = operand.wrapping_sub(1);
@@ -335,6 +345,15 @@ impl<T: Memory> Processor<T> {
         let ret = self.core.pc + 2;
         self.push_word(ret);
         self.jmp(addr);
+    }
+
+    // UNDOCUMENTED OPCODE
+    pub(crate) fn lax(&mut self, addr: u16) {
+        let value = self.memory.read(addr);
+        self.core.a = value;
+        self.core.x = value;
+        self.core.f.set_z(value);
+        self.core.f.set_n(value);
     }
 
     pub(crate) fn lda(&mut self, addr: u16) {
@@ -459,6 +478,12 @@ impl<T: Memory> Processor<T> {
         let lob = self.pull();
         let hob = self.pull();
         self.core.pc = ((hob as u16) << 8) | (lob as u16);
+    }
+
+    // UNDOCUMENTED OPCODE
+    pub(crate) fn sax(&mut self, addr: u16) {
+        let value = self.core.a & self.core.x;
+        self.memory.write(addr, value);
     }
 
     pub(crate) fn sbc(&mut self, addr: u16) {

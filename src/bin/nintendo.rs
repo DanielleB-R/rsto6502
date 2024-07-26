@@ -16,7 +16,7 @@ fn main() {
 
     processor.core.pc = 0xc000;
 
-    while processor.memory.read(0x02) == 0 {
+    while processor.memory.read(0x02) == 0 && processor.memory.read(0x03) == 0 {
         processor.emulate_instruction();
     }
 
