@@ -18,6 +18,9 @@ fn main() {
 
     while processor.memory.read(0x02) == 0 && processor.memory.read(0x03) == 0 {
         println!("{:04X}", processor.core.pc);
+        if processor.core.pc == 0xc9F6 || processor.core.pc == 0xc9f8 {
+            eprintln!("{}", processor.core);
+        }
         processor.emulate_instruction();
     }
 

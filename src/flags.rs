@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Flags {
     pub c: bool,
@@ -33,6 +35,12 @@ impl Flags {
         self.d = byte & 0x08 != 0;
         self.v = byte & 0x40 != 0;
         self.n = byte & 0x80 != 0;
+    }
+}
+
+impl Display for Flags {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:02X}", self.get_byte())
     }
 }
 

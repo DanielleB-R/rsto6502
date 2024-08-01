@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::decode_6502;
 use crate::flags::Flags;
 use crate::memory::Memory;
@@ -10,6 +12,16 @@ pub struct Core {
     pub f: Flags,
     pub sp: u8,
     pub pc: u16,
+}
+
+impl Display for Core {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "A:{:02X} X:{:02X} Y:{:02X} P:{} SP:{:02X}",
+            self.a, self.x, self.y, self.f, self.sp
+        )
+    }
 }
 
 #[derive(Clone)]
@@ -125,28 +137,9 @@ impl<T: Memory> Processor<T> {
         let mut carry = self.core.f.c as u8;
         let operand = self.memory.read(addr);
 
-        if self.core.f.d {
-            let mut lnr = (old_a & 0x0f) + (operand & 0x0f) + carry;
-            if lnr > 0x09 {
-                lnr -= 0x0a;
-                carry = 0x01;
-            } else {
-                carry = 0x00;
-            }
-
-            let mut hnr = (old_a >> 4) + (operand >> 4) + carry;
-            if hnr > 0x09 {
-                hnr -= 0x0a;
-                self.core.f.c = true;
-            } else {
-                self.core.f.c = false;
-            }
-            self.core.a = (hnr << 4) + (lnr & 0x0f);
-        } else {
-            let sum = (old_a as u16) + (operand as u16) + (carry as u16);
-            self.core.a = (sum & 0xff) as u8;
-            self.core.f.c = sum > 0xff;
-        }
+        let sum = (old_a as u16) + (operand as u16) + (carry as u16);
+        self.core.a = (sum & 0xff) as u8;
+        self.core.f.c = sum > 0xff;
 
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
@@ -518,35 +511,14 @@ impl<T: Memory> Processor<T> {
         let mut carry = (!self.core.f.c) as u8;
         let operand = self.memory.read(addr);
 
-        if self.core.f.d {
-            let mut lnr = (old_a & 0x0f)
-                .wrapping_sub(operand & 0x0f)
-                .wrapping_sub(carry);
-            if lnr > 0x09 {
-                lnr -= 0x06;
-                carry = 0x01;
-            } else {
-                carry = 0x00;
-            }
-
-            let mut hnr = (old_a >> 4).wrapping_sub(operand >> 4).wrapping_sub(carry);
-            if hnr > 0x09 {
-                hnr -= 0x06;
-                self.core.f.c = false;
-            } else {
-                self.core.f.c = true;
-            }
-            self.core.a = (hnr << 4) + (lnr & 0x0f);
-        } else {
-            let diff = (old_a as u16)
-                .wrapping_sub(operand as u16)
-                .wrapping_sub(carry as u16);
-            self.core.a = (diff & 0x0ff) as u8;
-            self.core.f.c = diff <= 0x0ff;
-            self.core.f.set_z(self.core.a);
-            self.core.f.set_n(self.core.a);
-            self.core.f.v = (old_a ^ operand) & 0x80 != 0 && (old_a ^ self.core.a) & 0x80 != 0;
-        }
+        let diff = (old_a as u16)
+            .wrapping_sub(operand as u16)
+            .wrapping_sub(carry as u16);
+        self.core.a = (diff & 0x0ff) as u8;
+        self.core.f.c = diff <= 0x0ff;
+        self.core.f.set_z(self.core.a);
+        self.core.f.set_n(self.core.a);
+        self.core.f.v = (old_a ^ operand) & 0x80 != 0 && (old_a ^ self.core.a) & 0x80 != 0;
     }
 
     pub(crate) fn sec(&mut self) {
@@ -699,6 +671,20 @@ mod tests {
 
         cpu.cli();
         assert_eq!(cpu.core, alter_default_by!(Core, f.i => false));
+    }
+
+    #[test]
+    fn test_cmp() {
+        let mut cpu = new_processor();
+        let addr: u16 = 0x1000;
+
+        let val: u8 = 0x00;
+        cpu.core.a = 0x80;
+        cpu.memory.write(addr, val);
+        cpu.cmp(0x00);
+        assert!(!cpu.core.f.z);
+        assert!(!cpu.core.f.n);
+        assert!(cpu.core.f.c);
     }
 
     #[test]
