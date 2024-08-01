@@ -17,11 +17,12 @@ fn main() {
     processor.core.pc = 0xc000;
 
     while processor.memory.read(0x02) == 0 && processor.memory.read(0x03) == 0 {
+        println!("{:04X}", processor.core.pc);
         processor.emulate_instruction();
     }
 
-    println!(
-        "{:x} {:x}",
+    eprintln!(
+        "0x{:02x} 0x{:02x}",
         processor.memory.read(0x02),
         processor.memory.read(0x03)
     );

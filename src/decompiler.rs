@@ -106,6 +106,7 @@ impl<'a> Decompiler<'a> {
     decompile_mnemonic!(inc, arg);
     decompile_mnemonic!(inx);
     decompile_mnemonic!(iny);
+    decompile_mnemonic!(isc, arg);
     decompile_mnemonic!(jmp, arg);
     decompile_mnemonic!(jsr, arg);
     decompile_mnemonic!(lax, arg);
@@ -121,10 +122,12 @@ impl<'a> Decompiler<'a> {
     decompile_mnemonic!(php);
     decompile_mnemonic!(pla);
     decompile_mnemonic!(plp);
+    decompile_mnemonic!(rla, arg);
     decompile_mnemonic!(rol, arg);
     decompile_mnemonic!(rola, A);
     decompile_mnemonic!(ror, arg);
     decompile_mnemonic!(rora, A);
+    decompile_mnemonic!(rra, arg);
     decompile_mnemonic!(rti);
     decompile_mnemonic!(rts);
     decompile_mnemonic!(sax, arg);
@@ -132,6 +135,8 @@ impl<'a> Decompiler<'a> {
     decompile_mnemonic!(sec);
     decompile_mnemonic!(sed);
     decompile_mnemonic!(sei);
+    decompile_mnemonic!(slo, arg);
+    decompile_mnemonic!(sre, arg);
     decompile_mnemonic!(sta, arg);
     decompile_mnemonic!(stx, arg);
     decompile_mnemonic!(sty, arg);

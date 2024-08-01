@@ -336,6 +336,13 @@ impl<T: Memory> Processor<T> {
         self.core.f.set_n(self.core.y);
     }
 
+    // UNDOCUMENTED OPCODE
+    pub(crate) fn isc(&mut self, addr: u16) {
+        self.sbc(addr);
+        let operand = self.memory.read(addr);
+        self.memory.write(addr, operand.wrapping_sub(1));
+    }
+
     pub(crate) fn jmp(&mut self, addr: u16) {
         self.core.pc = addr;
         self.jumped = true;
@@ -424,6 +431,21 @@ impl<T: Memory> Processor<T> {
         self.core.f.set_byte(byte);
     }
 
+    // UNDOCUMENTED OPCODE
+    pub(crate) fn rla(&mut self, addr: u16) {
+        let carry = self.core.f.c as u8;
+        let mut operand = self.memory.read(addr);
+
+        self.core.a &= operand;
+        self.core.f.set_z(self.core.a);
+        self.core.f.set_n(self.core.a);
+
+        self.core.f.c = operand & 0x80 != 0;
+        operand = (operand << 1) | carry;
+
+        self.memory.write(addr, operand);
+    }
+
     pub(crate) fn rol(&mut self, addr: u16) {
         let carry = self.core.f.c as u8;
         let mut operand = self.memory.read(addr);
@@ -466,6 +488,11 @@ impl<T: Memory> Processor<T> {
 
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
+    }
+
+    // UNDOCUMENTED OPCODE
+    pub(crate) fn rra(&mut self, _addr: u16) {
+        // TODO implement behaviour here
     }
 
     pub(crate) fn rti(&mut self) {
@@ -532,6 +559,30 @@ impl<T: Memory> Processor<T> {
 
     pub(crate) fn sei(&mut self) {
         self.core.f.i = true;
+    }
+
+    // UNDOCUMENTED OPCODE
+    pub(crate) fn slo(&mut self, addr: u16) {
+        let operand = self.memory.read(addr);
+
+        self.core.f.c = operand & 0x80 != 0;
+        self.memory.write(addr, operand << 1);
+
+        self.core.a |= operand;
+        self.core.f.set_z(self.core.a);
+        self.core.f.set_n(self.core.a);
+    }
+
+    // UNDOCUMENTED OPCODE
+    pub(crate) fn sre(&mut self, addr: u16) {
+        let operand = self.memory.read(addr);
+
+        self.core.f.c = operand & 0x01 != 0;
+        self.memory.write(addr, operand >> 1);
+
+        self.core.a ^= operand;
+        self.core.f.set_z(self.core.a);
+        self.core.f.set_n(self.core.a);
     }
 
     pub(crate) fn sta(&mut self, addr: u16) {
