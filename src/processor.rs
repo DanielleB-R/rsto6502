@@ -39,7 +39,7 @@ impl Core {
             x: 0,
             y: 0,
             f: Flags::default(),
-            sp: 0xfe,
+            sp: 0xfd,
             pc: 0x0000,
         }
     }

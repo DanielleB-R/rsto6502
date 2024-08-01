@@ -15,6 +15,8 @@ fn main() {
     let mut processor = Processor::with_memory(memory_map);
 
     processor.core.pc = 0xc000;
+    processor.core.f.i = true;
+    eprintln!("{}", processor.core);
 
     while processor.memory.read(0x02) == 0 && processor.memory.read(0x03) == 0 {
         println!("{:04X}", processor.core.pc);

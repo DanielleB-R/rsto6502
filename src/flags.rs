@@ -24,6 +24,7 @@ impl Flags {
             | ((self.z as u8) << 1)
             | ((self.i as u8) << 2)
             | ((self.d as u8) << 3)
+            | 0x20
             | ((self.v as u8) << 6)
             | ((self.n as u8) << 7)
     }
