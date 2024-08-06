@@ -65,6 +65,14 @@ impl<'a> Decompiler<'a> {
         format!("${:04x},Y", self.arg_u16())
     }
 
+    pub(crate) fn absolute_x_for_store(&self) -> String {
+        format!("${:04x},X", self.arg_u16())
+    }
+
+    pub(crate) fn absolute_y_for_store(&self) -> String {
+        format!("${:04x},Y", self.arg_u16())
+    }
+
     pub(crate) fn indirect(&self) -> String {
         format!("(${:04x})", self.arg_u16())
     }
@@ -149,7 +157,7 @@ impl<'a> Decompiler<'a> {
 
     pub fn decompile(mut self) {
         while self.pc < self.program.len() {
-            self.pc += decode_6502!(self.program[self.pc]; self) as usize;
+            self.pc += decode_6502!(self.program[self.pc]; self).0 as usize;
         }
     }
 }

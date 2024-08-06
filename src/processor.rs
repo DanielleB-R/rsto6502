@@ -30,6 +30,7 @@ pub struct Processor<T: Memory> {
     pub memory: T,
     // TODO: Is there a better way to do this?
     pub jumped: bool,
+    pub cycles: usize,
 }
 
 impl Core {
@@ -51,18 +52,34 @@ impl Default for Core {
     }
 }
 
+impl<T: Memory> Display for Processor<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ppu_cycles = self.cycles * 3;
+        write!(
+            f,
+            "{} PPU:{:3},{:3} CYC:{}",
+            self.core,
+            ppu_cycles / 341,
+            ppu_cycles % 341,
+            self.cycles
+        )
+    }
+}
+
 impl<T: Memory> Processor<T> {
     pub fn with_memory(memory: T) -> Self {
         Self {
             core: Core::new(),
             memory,
             jumped: false,
+            cycles: 0,
         }
     }
 
     fn branch(&mut self, addr: u16) {
         let offset = self.memory.read_signed(addr);
         self.core.pc = self.core.pc.wrapping_add(offset as u16);
+        self.cycles += 1;
     }
 
     fn pull(&mut self) -> u8 {
@@ -109,32 +126,71 @@ impl<T: Memory> Processor<T> {
         self.memory.read_word(self.immediate())
     }
 
-    pub(crate) fn absolute_x(&self) -> u16 {
+    pub(crate) fn absolute_x(&mut self) -> u16 {
+        let base = self.absolute();
+        let addr = base.wrapping_add(self.core.x as u16);
+
+        if base & 0xff00 != addr & 0xff00 {
+            self.cycles += 1
+        }
+
+        addr
+    }
+
+    pub(crate) fn absolute_x_for_store(&self) -> u16 {
         self.absolute().wrapping_add(self.core.x as u16)
     }
 
-    pub(crate) fn absolute_y(&self) -> u16 {
+    pub(crate) fn absolute_y(&mut self) -> u16 {
+        let base = self.absolute();
+        let addr = base.wrapping_add(self.core.y as u16);
+
+        if base & 0xff00 != addr & 0xff00 {
+            self.cycles += 1
+        }
+
+        addr
+    }
+
+    pub(crate) fn absolute_y_for_store(&self) -> u16 {
         self.absolute().wrapping_add(self.core.y as u16)
     }
 
     pub(crate) fn indirect(&self) -> u16 {
-        self.memory.read_word(self.absolute())
+        self.wrapping_read(self.absolute())
+    }
+
+    fn wrapping_read(&self, indirect_addr: u16) -> u16 {
+        // If the base address is 0x??ff, we don't read the word correctly
+        if indirect_addr & 0x00ff == 0x00ff {
+            u16::from_le_bytes([
+                self.memory.read(indirect_addr),
+                self.memory.read(indirect_addr & 0xff00),
+            ])
+        } else {
+            self.memory.read_word(indirect_addr)
+        }
     }
 
     pub(crate) fn indexed_indirect(&self) -> u16 {
-        self.memory.read_word(self.zero_page_x())
+        self.wrapping_read(self.zero_page_x())
     }
 
-    pub(crate) fn indirect_indexed(&self) -> u16 {
-        self.memory
-            .read_word(self.zero_page())
-            .wrapping_add(self.core.y as u16)
+    pub(crate) fn indirect_indexed(&mut self) -> u16 {
+        let base = self.wrapping_read(self.zero_page());
+        let addr = base.wrapping_add(self.core.y as u16);
+
+        if base & 0xff00 != addr & 0xff00 {
+            self.cycles += 1
+        }
+
+        addr
     }
 
     // OPCODES
     pub(crate) fn adc(&mut self, addr: u16) {
         let old_a = self.core.a;
-        let mut carry = self.core.f.c as u8;
+        let carry = self.core.f.c as u8;
         let operand = self.memory.read(addr);
 
         let sum = (old_a as u16) + (operand as u16) + (carry as u16);
@@ -252,24 +308,27 @@ impl<T: Memory> Processor<T> {
     pub(crate) fn cmp(&mut self, addr: u16) {
         let operand = self.memory.read(addr);
         let diff = (self.core.a as i16) - (operand as i16);
-        self.core.f.n = diff < 0;
-        self.core.f.z = diff == 0;
+        let result = (diff & 0xff) as u8;
+        self.core.f.set_n(result);
+        self.core.f.set_z(result);
         self.core.f.c = diff >= 0;
     }
 
     pub(crate) fn cpx(&mut self, addr: u16) {
         let operand = self.memory.read(addr);
         let diff = (self.core.x as i16) - (operand as i16);
-        self.core.f.n = diff < 0;
-        self.core.f.z = diff == 0;
+        let result = (diff & 0xff) as u8;
+        self.core.f.set_n(result);
+        self.core.f.set_z(result);
         self.core.f.c = diff >= 0;
     }
 
     pub(crate) fn cpy(&mut self, addr: u16) {
         let operand = self.memory.read(addr);
         let diff = (self.core.y as i16) - (operand as i16);
-        self.core.f.n = diff < 0;
-        self.core.f.z = diff == 0;
+        let result = (diff & 0xff) as u8;
+        self.core.f.set_n(result);
+        self.core.f.set_z(result);
         self.core.f.c = diff >= 0;
     }
 
@@ -278,8 +337,9 @@ impl<T: Memory> Processor<T> {
         let operand = self.memory.read(addr);
         self.memory.write(addr, operand.wrapping_sub(1));
         let diff = (self.core.a as i16) - (operand as i16);
-        self.core.f.n = diff < 0;
-        self.core.f.z = diff == 0;
+        let result = (diff & 0xff) as u8;
+        self.core.f.set_n(result);
+        self.core.f.set_z(result);
         self.core.f.c = diff >= 0;
     }
 
@@ -508,7 +568,7 @@ impl<T: Memory> Processor<T> {
 
     pub(crate) fn sbc(&mut self, addr: u16) {
         let old_a = self.core.a;
-        let mut carry = (!self.core.f.c) as u8;
+        let carry = (!self.core.f.c) as u8;
         let operand = self.memory.read(addr);
 
         let diff = (old_a as u16)
@@ -606,7 +666,8 @@ impl<T: Memory> Processor<T> {
     pub fn emulate_instruction(&mut self) {
         let opcode = self.memory.read(self.core.pc);
 
-        let length = decode_6502!(opcode; self);
+        let (length, cycles) = decode_6502!(opcode; self);
+        self.cycles += cycles;
         if self.jumped {
             self.jumped = false;
         } else {
@@ -633,7 +694,7 @@ mod tests {
         assert_eq!(core.x, 0);
         assert_eq!(core.y, 0);
         assert_eq!(core.f, Flags::default());
-        assert_eq!(core.sp, 0xfe);
+        assert_eq!(core.sp, 0xfd);
         assert_eq!(core.pc, 0x0000);
     }
 
@@ -681,9 +742,37 @@ mod tests {
         let val: u8 = 0x00;
         cpu.core.a = 0x80;
         cpu.memory.write(addr, val);
-        cpu.cmp(0x00);
+        cpu.cmp(addr);
         assert!(!cpu.core.f.z);
-        assert!(!cpu.core.f.n);
+        assert!(cpu.core.f.n);
+        assert!(cpu.core.f.c);
+    }
+
+    #[test]
+    fn test_cpx() {
+        let mut cpu = new_processor();
+        let addr: u16 = 0x1000;
+
+        let val: u8 = 0x00;
+        cpu.core.x = 0x80;
+        cpu.memory.write(addr, val);
+        cpu.cpx(addr);
+        assert!(!cpu.core.f.z);
+        assert!(cpu.core.f.n);
+        assert!(cpu.core.f.c);
+    }
+
+    #[test]
+    fn test_cpy() {
+        let mut cpu = new_processor();
+        let addr: u16 = 0x1000;
+
+        let val: u8 = 0x00;
+        cpu.core.y = 0x80;
+        cpu.memory.write(addr, val);
+        cpu.cpy(addr);
+        assert!(!cpu.core.f.z);
+        assert!(cpu.core.f.n);
         assert!(cpu.core.f.c);
     }
 

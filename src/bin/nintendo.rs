@@ -16,14 +16,13 @@ fn main() {
 
     processor.core.pc = 0xc000;
     processor.core.f.i = true;
-    eprintln!("{}", processor.core);
+    processor.cycles = 7;
 
     while processor.memory.read(0x02) == 0 && processor.memory.read(0x03) == 0 {
-        println!("{:04X}", processor.core.pc);
-        if processor.core.pc == 0xc9F6 || processor.core.pc == 0xc9f8 {
-            eprintln!("{}", processor.core);
-        }
+        let old_pc = processor.core.pc;
+        let old_core_spec = format!("{}", processor);
         processor.emulate_instruction();
+        println!("{:04X}  {}", old_pc, old_core_spec);
     }
 
     eprintln!(
