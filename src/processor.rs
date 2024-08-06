@@ -187,6 +187,11 @@ impl<T: Memory> Processor<T> {
         addr
     }
 
+    pub(crate) fn indirect_indexed_for_store(&mut self) -> u16 {
+        self.wrapping_read(self.zero_page())
+            .wrapping_add(self.core.y as u16)
+    }
+
     // OPCODES
     pub(crate) fn adc(&mut self, addr: u16) {
         let old_a = self.core.a;
@@ -335,8 +340,9 @@ impl<T: Memory> Processor<T> {
     // UNDOCUMENTED OPCODE
     pub(crate) fn dcp(&mut self, addr: u16) {
         let operand = self.memory.read(addr);
-        self.memory.write(addr, operand.wrapping_sub(1));
-        let diff = (self.core.a as i16) - (operand as i16);
+        let result = operand.wrapping_sub(1);
+        self.memory.write(addr, result);
+        let diff = (self.core.a as i16) - (result as i16);
         let result = (diff & 0xff) as u8;
         self.core.f.set_n(result);
         self.core.f.set_z(result);
@@ -391,9 +397,20 @@ impl<T: Memory> Processor<T> {
 
     // UNDOCUMENTED OPCODE
     pub(crate) fn isc(&mut self, addr: u16) {
-        self.sbc(addr);
         let operand = self.memory.read(addr);
-        self.memory.write(addr, operand.wrapping_sub(1));
+        let result = operand.wrapping_add(1);
+        self.memory.write(addr, result);
+        let old_a = self.core.a;
+        let carry = (!self.core.f.c) as u8;
+
+        let diff = (old_a as u16)
+            .wrapping_sub(result as u16)
+            .wrapping_sub(carry as u16);
+        self.core.a = (diff & 0x0ff) as u8;
+        self.core.f.c = diff <= 0x0ff;
+        self.core.f.set_z(self.core.a);
+        self.core.f.set_n(self.core.a);
+        self.core.f.v = (old_a ^ operand) & 0x80 != 0 && (old_a ^ self.core.a) & 0x80 != 0;
     }
 
     pub(crate) fn jmp(&mut self, addr: u16) {
@@ -487,16 +504,15 @@ impl<T: Memory> Processor<T> {
     // UNDOCUMENTED OPCODE
     pub(crate) fn rla(&mut self, addr: u16) {
         let carry = self.core.f.c as u8;
-        let mut operand = self.memory.read(addr);
-
-        self.core.a &= operand;
-        self.core.f.set_z(self.core.a);
-        self.core.f.set_n(self.core.a);
+        let operand = self.memory.read(addr);
 
         self.core.f.c = operand & 0x80 != 0;
-        operand = (operand << 1) | carry;
+        let intermediate = (operand << 1) | carry;
+        self.memory.write(addr, intermediate);
 
-        self.memory.write(addr, operand);
+        self.core.a &= intermediate;
+        self.core.f.set_z(self.core.a);
+        self.core.f.set_n(self.core.a);
     }
 
     pub(crate) fn rol(&mut self, addr: u16) {
@@ -598,9 +614,10 @@ impl<T: Memory> Processor<T> {
         let operand = self.memory.read(addr);
 
         self.core.f.c = operand & 0x80 != 0;
-        self.memory.write(addr, operand << 1);
+        let intermediate = operand << 1;
+        self.memory.write(addr, intermediate);
 
-        self.core.a |= operand;
+        self.core.a |= intermediate;
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
     }
@@ -610,9 +627,10 @@ impl<T: Memory> Processor<T> {
         let operand = self.memory.read(addr);
 
         self.core.f.c = operand & 0x01 != 0;
-        self.memory.write(addr, operand >> 1);
+        let intermediate = operand >> 1;
+        self.memory.write(addr, intermediate);
 
-        self.core.a ^= operand;
+        self.core.a ^= intermediate;
         self.core.f.set_z(self.core.a);
         self.core.f.set_n(self.core.a);
     }

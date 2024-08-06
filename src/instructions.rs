@@ -41,7 +41,7 @@ macro_rules! decode_6502 {
 
             0x10 => (2, bpl, immediate),
             0x11 => (5, ora, indirect_indexed),
-            0x13 => (8, slo, indirect_indexed),
+            0x13 => (8, slo, indirect_indexed_for_store),
             0x14 => (4, nop_addr, zero_page_x), // UNDOCUMENTED
             0x15 => (4, ora, zero_page_x),
             0x16 => (6, asl, zero_page_x),
@@ -49,11 +49,11 @@ macro_rules! decode_6502 {
             0x18 => (2, clc, ),
             0x19 => (4, ora, absolute_y),
             0x1a => (2, nop, ), // UNDOCUMENTED
-            0x1b => (7, slo, absolute_y),
+            0x1b => (7, slo, absolute_y_for_store),
             0x1c => (4, nop_addr, absolute_x), // UNDOCUMENTED
             0x1d => (4, ora, absolute_x),
             0x1e => (7, asl, absolute_x),
-            0x1f => (7, slo, absolute_x),
+            0x1f => (7, slo, absolute_x_for_store),
 
             0x20 => (6, jsr, absolute),
             0x21 => (6, and, indexed_indirect),
@@ -72,7 +72,7 @@ macro_rules! decode_6502 {
 
             0x30 => (2, bmi, immediate),
             0x31 => (5, and, indirect_indexed),
-            0x33 => (8, rla, indirect_indexed),
+            0x33 => (8, rla, indirect_indexed_for_store),
             0x34 => (4, nop_addr, zero_page_x), // UNDOCUMENTED
             0x35 => (4, and, zero_page_x),
             0x36 => (6, rol, zero_page_x),
@@ -80,11 +80,11 @@ macro_rules! decode_6502 {
             0x38 => (2, sec, ),
             0x39 => (4, and, absolute_y),
             0x3a => (2, nop, ), // UNDOCUMENTED
-            0x3b => (7, rla, absolute_y),
+            0x3b => (7, rla, absolute_y_for_store),
             0x3c => (4, nop_addr, absolute_x), // UNDOCUMENTED
             0x3d => (4, and, absolute_x),
             0x3e => (7, rol, absolute_x),
-            0x3f => (7, rla, absolute_x),
+            0x3f => (7, rla, absolute_x_for_store),
 
             0x40 => (6, rti, ),
             0x41 => (6, eor, indexed_indirect),
@@ -221,7 +221,7 @@ macro_rules! decode_6502 {
 
             0xd0 => (2, bne, immediate),
             0xd1 => (5, cmp, indirect_indexed),
-            0xd3 => (8, dcp, indirect_indexed),
+            0xd3 => (8, dcp, indirect_indexed_for_store),
             0xd4 => (4, nop_addr, zero_page_x), // UNDOCUMENTED
             0xd5 => (4, cmp, zero_page_x),
             0xd6 => (6, dec, zero_page_x),
@@ -229,11 +229,11 @@ macro_rules! decode_6502 {
             0xd8 => (2, cld, ),
             0xd9 => (4, cmp, absolute_y),
             0xda => (2, nop, ), // UNDOCUMENTED
-            0xdb => (7, dcp, absolute_y),
+            0xdb => (7, dcp, absolute_y_for_store),
             0xdc => (4, nop_addr, absolute_x), // UNDOCUMENTED
             0xdd => (4, cmp, absolute_x),
             0xde => (7, dec, absolute_x),
-            0xdf => (7, dcp, absolute_x),
+            0xdf => (7, dcp, absolute_x_for_store),
 
             0xe0 => (2, cpx, immediate),
             0xe1 => (6, sbc, indexed_indirect),
@@ -253,7 +253,7 @@ macro_rules! decode_6502 {
 
             0xf0 => (2, beq, immediate),
             0xf1 => (5, sbc, indirect_indexed),
-            0xf3 => (8, isc, indirect_indexed),
+            0xf3 => (8, isc, indirect_indexed_for_store),
             0xf4 => (4, nop_addr, zero_page_x), // UNDOCUMENTED
             0xf5 => (4, sbc, zero_page_x),
             0xf6 => (6, inc, zero_page_x),
@@ -261,11 +261,11 @@ macro_rules! decode_6502 {
             0xf8 => (2, sed, ),
             0xf9 => (4, sbc, absolute_y),
             0xfa => (2, nop, ), // UNDOCUMENTED
-            0xfb => (7, isc, absolute_y),
+            0xfb => (7, isc, absolute_y_for_store),
             0xfc => (4, nop_addr, absolute_x), // UNDOCUMENTED
             0xfd => (4, sbc, absolute_x),
             0xfe => (7, inc, absolute_x),
-            0xff => (7, isc, absolute_x)
+            0xff => (7, isc, absolute_x_for_store)
         }
     };
 }
@@ -284,4 +284,5 @@ pub mod length {
     pub const indirect: u16 = 3;
     pub const indexed_indirect: u16 = 2;
     pub const indirect_indexed: u16 = 2;
+    pub const indirect_indexed_for_store: u16 = 2;
 }

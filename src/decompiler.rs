@@ -85,6 +85,10 @@ impl<'a> Decompiler<'a> {
         format!("(${:02x}),Y", self.arg_u8())
     }
 
+    pub(crate) fn indirect_indexed_for_store(&self) -> String {
+        format!("(${:02x}),Y", self.arg_u8())
+    }
+
     decompile_mnemonic!(adc, arg);
     decompile_mnemonic!(and, arg);
     decompile_mnemonic!(asla, A);
