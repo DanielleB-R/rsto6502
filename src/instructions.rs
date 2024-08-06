@@ -103,7 +103,7 @@ macro_rules! decode_6502 {
 
             0x50 => (2, bvc, immediate),
             0x51 => (5, eor, indirect_indexed),
-            0x53 => (8, sre, indirect_indexed),
+            0x53 => (8, sre, indirect_indexed_for_store),
             0x54 => (4, nop_addr, zero_page_x), // UNDOCUMENTED
             0x55 => (4, eor, zero_page_x),
             0x56 => (6, lsr, zero_page_x),
@@ -111,11 +111,11 @@ macro_rules! decode_6502 {
             0x58 => (2, cli, ),
             0x59 => (4, eor, absolute_y),
             0x5a => (2, nop, ), // UNDOCUMENTED
-            0x5b => (7, sre, absolute_y),
+            0x5b => (7, sre, absolute_y_for_store),
             0x5c => (4, nop_addr, absolute_x), // UNDOCUMENTED
             0x5d => (4, eor, absolute_x),
             0x5e => (7, lsr, absolute_x),
-            0x5f => (7, sre, absolute_x),
+            0x5f => (7, sre, absolute_x_for_store),
 
             0x60 => (6, rts, ),
             0x61 => (6, adc, indexed_indirect),
@@ -134,7 +134,7 @@ macro_rules! decode_6502 {
 
             0x70 => (2, bvs, immediate),
             0x71 => (5, adc, indirect_indexed),
-            0x73 => (8, rra, indirect_indexed),
+            0x73 => (8, rra, indirect_indexed_for_store),
             0x74 => (4, nop_addr, zero_page_x), // UNDOCUMENTED
             0x75 => (4, adc, zero_page_x),
             0x76 => (6, ror, zero_page_x),
@@ -142,11 +142,11 @@ macro_rules! decode_6502 {
             0x78 => (2, sei, ),
             0x79 => (4, adc, absolute_y),
             0x7a => (2, nop, ), // UNDOCUMENTED
-            0x7b => (7, rra, absolute_y),
+            0x7b => (7, rra, absolute_y_for_store),
             0x7c => (4, nop_addr, absolute_x), // UNDOCUMENTED
             0x7d => (4, adc, absolute_x),
             0x7e => (7, ror, absolute_x),
-            0x7f => (7, rra, absolute_x),
+            0x7f => (7, rra, absolute_x_for_store),
 
             0x80 => (2, nop_addr, immediate), // UNDOCUMENTED
             0x81 => (6, sta, indexed_indirect),

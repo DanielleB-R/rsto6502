@@ -78,7 +78,15 @@ impl<T: Memory> Processor<T> {
 
     fn branch(&mut self, addr: u16) {
         let offset = self.memory.read_signed(addr);
-        self.core.pc = self.core.pc.wrapping_add(offset as u16);
+        let base = self.core.pc.wrapping_add(2);
+        let new_address = base.wrapping_add(offset as u16);
+
+        if base & 0xff00 != new_address & 0xff00 {
+            self.cycles += 1;
+        }
+
+        self.core.pc = new_address;
+        self.jumped = true;
         self.cycles += 1;
     }
 
@@ -560,8 +568,21 @@ impl<T: Memory> Processor<T> {
     }
 
     // UNDOCUMENTED OPCODE
-    pub(crate) fn rra(&mut self, _addr: u16) {
-        // TODO implement behaviour here
+    pub(crate) fn rra(&mut self, addr: u16) {
+        let carry = self.core.f.c as u8;
+        let operand = self.memory.read(addr);
+
+        self.core.f.c = operand & 0x01 != 0;
+        let intermediate = (operand >> 1) | (carry << 7);
+        self.memory.write(addr, intermediate);
+
+        let old_a = self.core.a;
+        let sum = (old_a as u16) + (intermediate as u16) + (self.core.f.c as u16);
+        self.core.a = (sum & 0xff) as u8;
+        self.core.f.c = sum > 0xff;
+        self.core.f.set_z(self.core.a);
+        self.core.f.set_n(self.core.a);
+        self.core.f.v = (old_a ^ intermediate) & 0x80 == 0 && (old_a ^ self.core.a) & 0x80 != 0;
     }
 
     pub(crate) fn rti(&mut self) {
