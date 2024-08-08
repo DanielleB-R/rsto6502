@@ -1,4 +1,4 @@
-use rsto6502::{nintendo, Memory, Processor};
+use rsto6502::{nintendo, Memory};
 use std::{env, fs};
 
 fn main() {
@@ -8,26 +8,22 @@ fn main() {
 
     let rom_bytes = fs::read(filename).unwrap();
 
-    let cartridge = nintendo::parse(&rom_bytes);
+    let mut nes = nintendo::Nes::new(&rom_bytes);
 
-    let memory_map = nintendo::NesMemoryMap::new(cartridge);
+    nes.cpu.core.pc = 0xc000;
+    nes.cpu.core.f.i = true;
+    nes.cpu.cycles = 7;
 
-    let mut processor = Processor::with_memory(memory_map);
-
-    processor.core.pc = 0xc000;
-    processor.core.f.i = true;
-    processor.cycles = 7;
-
-    while processor.memory.read(0x02) == 0 && processor.memory.read(0x03) == 0 {
-        let old_pc = processor.core.pc;
-        let old_core_spec = format!("{}", processor);
-        processor.emulate_instruction();
+    while nes.cpu.memory.read(0x02) == 0 && nes.cpu.memory.read(0x03) == 0 {
+        let old_pc = nes.cpu.core.pc;
+        let old_core_spec = format!("{}", nes.cpu);
+        nes.cpu.emulate_instruction();
         println!("{:04X}  {}", old_pc, old_core_spec);
     }
 
     eprintln!(
         "0x{:02x} 0x{:02x}",
-        processor.memory.read(0x02),
-        processor.memory.read(0x03)
+        nes.cpu.memory.read(0x02),
+        nes.cpu.memory.read(0x03)
     );
 }

@@ -36,11 +36,11 @@ pub struct NesMemoryMap {
     pub mirrored_ram: memory::MirroredMemory<memory::RandomAccessMemory>,
     pub ppu_proxy: memory::MirroredMemory<PpuProxy>,
     pub apu_io_proxy: ApuIoProxy,
-    pub cartridge: Box<dyn Cartridge>,
+    pub cartridge: *mut dyn Cartridge,
 }
 
 impl NesMemoryMap {
-    pub fn new(cartridge: Box<dyn Cartridge>) -> Self {
+    pub fn new(cartridge: *mut dyn Cartridge) -> Self {
         Self {
             mirrored_ram: memory::MirroredMemory::new(
                 memory::RandomAccessMemory::new(0x0800),
@@ -60,7 +60,7 @@ impl Memory for NesMemoryMap {
             0x0000..=0x1fff => self.mirrored_ram.read(addr),
             0x2000..=0x3fff => self.ppu_proxy.read(addr - 0x2000),
             0x4000..=0x401f => self.apu_io_proxy.read(addr - 0x4000),
-            _ => self.cartridge.read(addr),
+            _ => unsafe { (&*self.cartridge).read(addr) },
         }
     }
 
@@ -69,7 +69,7 @@ impl Memory for NesMemoryMap {
             0x0000..=0x1fff => self.mirrored_ram.write(addr, data),
             0x2000..=0x3fff => self.ppu_proxy.write(addr - 0x2000, data),
             0x4000..=0x401f => self.apu_io_proxy.write(addr - 0x4000, data),
-            _ => self.cartridge.write(addr, data),
+            _ => unsafe { (&mut *self.cartridge).write(addr, data) },
         }
     }
 

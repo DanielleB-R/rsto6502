@@ -1,8 +1,11 @@
-use crate::memory::Memory;
+use crate::{memory::Memory, ReadOnlyMemory};
 
 pub trait Cartridge {
     fn prg(&self) -> &dyn Memory;
     fn prg_mut(&mut self) -> &mut dyn Memory;
+
+    fn chr(&self) -> &dyn Memory;
+    fn chr_mut(&mut self) -> &mut dyn Memory;
 }
 
 impl<T: Cartridge + ?Sized> Memory for T {
@@ -37,6 +40,7 @@ impl Memory for NullMemory {
 #[derive(Debug, Clone)]
 pub struct NullCartridge {
     memory: NullMemory,
+    chr_rom: NullMemory,
 }
 
 impl Cartridge for NullCartridge {
@@ -46,6 +50,14 @@ impl Cartridge for NullCartridge {
 
     fn prg_mut(&mut self) -> &mut dyn Memory {
         &mut self.memory
+    }
+
+    fn chr(&self) -> &dyn Memory {
+        &self.chr_rom
+    }
+
+    fn chr_mut(&mut self) -> &mut dyn Memory {
+        &mut self.chr_rom
     }
 }
 
@@ -106,16 +118,18 @@ impl Memory for NROM16KBMemory {
 
 pub struct NROMCartridge {
     pub prg_rom: Box<dyn Memory>,
+    pub chr_rom: ReadOnlyMemory,
 }
 
 impl NROMCartridge {
-    pub fn new(prg_bytes: &[u8]) -> Self {
+    pub fn new(prg_bytes: &[u8], chr_bytes: &[u8]) -> Self {
         Self {
             prg_rom: (match prg_bytes.len() {
                 0x4000 => Box::new(NROM16KBMemory::new(prg_bytes.try_into().unwrap())),
                 0x8000 => Box::new(NROM32KBMemory::new(prg_bytes.try_into().unwrap())),
                 _ => panic!("NROM PRG size wrong"),
             }),
+            chr_rom: chr_bytes.into(),
         }
     }
 }
@@ -127,5 +141,13 @@ impl Cartridge for NROMCartridge {
 
     fn prg_mut(&mut self) -> &mut dyn Memory {
         self.prg_rom.as_mut()
+    }
+
+    fn chr(&self) -> &dyn Memory {
+        &self.chr_rom
+    }
+
+    fn chr_mut(&mut self) -> &mut dyn Memory {
+        &mut self.chr_rom
     }
 }
