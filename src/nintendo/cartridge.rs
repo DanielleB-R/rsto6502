@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{memory::Memory, ReadOnlyMemory};
 
 pub trait Cartridge {
@@ -7,6 +9,8 @@ pub trait Cartridge {
     fn chr(&self) -> &dyn Memory;
     fn chr_mut(&mut self) -> &mut dyn Memory;
 }
+
+pub type CartridgeHandle = Rc<RefCell<Box<dyn Cartridge>>>;
 
 impl<T: Cartridge + ?Sized> Memory for T {
     fn read(&self, addr: u16) -> u8 {

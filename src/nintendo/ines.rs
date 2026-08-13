@@ -1,7 +1,9 @@
+use std::cell::RefCell;
+
 use super::cartridge::{Cartridge, NROMCartridge};
 
 // panics if the rom is invalid
-pub fn parse(rom: &[u8]) -> Box<dyn Cartridge> {
+pub fn parse(rom: &[u8]) -> RefCell<Box<dyn Cartridge>> {
     let header = &rom[0..16];
 
     // check magic number
@@ -20,5 +22,5 @@ pub fn parse(rom: &[u8]) -> Box<dyn Cartridge> {
     let prg = &rom[16..chr_start_offset];
     let chr = &rom[chr_start_offset..chr_end_offset];
 
-    Box::new(NROMCartridge::new(prg, chr))
+    RefCell::new(Box::new(NROMCartridge::new(prg, chr)))
 }

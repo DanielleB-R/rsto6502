@@ -1,6 +1,6 @@
 use crate::memory::{self, Memory};
 
-use super::cartridge::Cartridge;
+use super::cartridge::CartridgeHandle;
 
 #[derive(Debug, Clone)]
 pub struct PpuProxy;
@@ -36,11 +36,11 @@ pub struct NesMemoryMap {
     pub mirrored_ram: memory::MirroredMemory<memory::RandomAccessMemory>,
     pub ppu_proxy: memory::MirroredMemory<PpuProxy>,
     pub apu_io_proxy: ApuIoProxy,
-    pub cartridge: *mut dyn Cartridge,
+    pub cartridge: CartridgeHandle,
 }
 
 impl NesMemoryMap {
-    pub fn new(cartridge: *mut dyn Cartridge) -> Self {
+    pub fn new(cartridge: CartridgeHandle) -> Self {
         Self {
             mirrored_ram: memory::MirroredMemory::new(
                 memory::RandomAccessMemory::new(0x0800),
@@ -60,7 +60,7 @@ impl Memory for NesMemoryMap {
             0x0000..=0x1fff => self.mirrored_ram.read(addr),
             0x2000..=0x3fff => self.ppu_proxy.read(addr - 0x2000),
             0x4000..=0x401f => self.apu_io_proxy.read(addr - 0x4000),
-            _ => unsafe { (&*self.cartridge).read(addr) },
+            _ => self.cartridge.borrow().read(addr),
         }
     }
 
@@ -69,7 +69,7 @@ impl Memory for NesMemoryMap {
             0x0000..=0x1fff => self.mirrored_ram.write(addr, data),
             0x2000..=0x3fff => self.ppu_proxy.write(addr - 0x2000, data),
             0x4000..=0x401f => self.apu_io_proxy.write(addr - 0x4000, data),
-            _ => unsafe { (&mut *self.cartridge).write(addr, data) },
+            _ => self.cartridge.borrow_mut().write(addr, data),
         }
     }
 

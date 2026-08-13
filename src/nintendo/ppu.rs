@@ -1,31 +1,27 @@
-use super::cartridge::Cartridge;
+use super::cartridge::CartridgeHandle;
 use crate::{Memory, MirroredMemory, RandomAccessMemory};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PpuMemory {
     pub ram: RandomAccessMemory,
-    pub cartridge: *mut dyn Cartridge,
+    pub cartridge: CartridgeHandle,
     pub palette_ram: MirroredMemory<RandomAccessMemory>,
 }
 
 impl PpuMemory {
-    pub fn new(cartridge: *mut dyn Cartridge) -> Self {
+    pub fn new(cartridge: CartridgeHandle) -> Self {
         Self {
             ram: RandomAccessMemory::new(0x1000),
             cartridge,
             palette_ram: MirroredMemory::new(RandomAccessMemory::new(0x0020), 0x001f, 0x0100),
         }
     }
-
-    pub fn chr(&self) -> &mut dyn Memory {
-        unsafe { (&mut *self.cartridge).chr_mut() }
-    }
 }
 
 impl Memory for PpuMemory {
     fn read(&self, addr: u16) -> u8 {
         match addr {
-            0x0000..=0x1fff => self.chr().read(addr),
+            0x0000..=0x1fff => self.cartridge.borrow().chr().read(addr),
             0x2000..=0x2fff => self.ram.read(addr & 0x1fff),
             0x3000..=0x3eff => unimplemented!(),
             0x3f00..=0x3fff => self.palette_ram.read(addr & 0x00ff),
@@ -35,7 +31,7 @@ impl Memory for PpuMemory {
 
     fn write(&mut self, addr: u16, data: u8) {
         match addr {
-            0x0000..=0x1fff => self.chr().write(addr, data),
+            0x0000..=0x1fff => self.cartridge.borrow_mut().chr_mut().write(addr, data),
             0x2000..=0x2fff => self.ram.write(addr & 0x1fff, data),
             0x3000..=0x3eff => unimplemented!(),
             0x3f00..=0x3fff => self.palette_ram.write(addr & 0x00ff, data),
@@ -48,14 +44,14 @@ impl Memory for PpuMemory {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Ppu {
     pub memory: PpuMemory,
     pub oam: [u8; 0x100],
 }
 
 impl Ppu {
-    pub fn new(cartridge: *mut dyn Cartridge) -> Self {
+    pub fn new(cartridge: CartridgeHandle) -> Self {
         Self {
             memory: PpuMemory::new(cartridge),
             oam: [0; 0x100],
